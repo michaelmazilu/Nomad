@@ -1,0 +1,24 @@
+# dependencies / build output
+node_modules/
+dist/
+build/
+target/
+.anchor/
+
+# solana local validator state
+test-ledger/
+.ledger/
+
+# secrets & local wallets — NEVER commit
+.env
+.env.*
+!.env.example
+*.keypair.json
+wallets/
+secrets/
+
+# misc
+.DS_Store
+*.log
+*.tsbuildinfo
+coverage/

@@ -1,0 +1,23 @@
+[toolchain]
+anchor_version = "0.31.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+agent_passport = "43MLqvfxob3RoxGGLMdqGUERCiGN5NKWJyuvvBSVjjgi"
+
+[programs.localnet]
+agent_passport = "43MLqvfxob3RoxGGLMdqGUERCiGN5NKWJyuvvBSVjjgi"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "node_modules/.bin/tsx node_modules/mocha/bin/mocha.js --timeout 1000000 tests/program/**/*.ts"
+test-integration = "node_modules/.bin/tsx node_modules/mocha/bin/mocha.js --timeout 1000000 tests/integration/**/*.ts"

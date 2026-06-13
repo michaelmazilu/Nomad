@@ -1,0 +1,25 @@
+{
+  "name": "@agent-passport/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MV3 browser extension: agent key generation/storage, owner-wallet-signed passport management, and runtime action signing.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agent-passport/sdk": "*",
+    "@agent-passport/verifier": "*",
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/web3.js": "^1.98.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.6.1",
+    "@types/chrome": "^0.1.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.11"
+  }
+}

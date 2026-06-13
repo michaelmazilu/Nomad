@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Passport</title>
+    <style>
+      body { font: 13px/1.4 system-ui, sans-serif; width: 380px; margin: 0; padding: 12px; }
+      h1 { font-size: 15px; margin: 0 0 8px; }
+      h2 { font-size: 12px; text-transform: uppercase; color: #666; margin: 14px 0 4px; }
+      section { border-top: 1px solid #eee; padding-top: 6px; }
+      label { display: block; margin: 4px 0; }
+      input, textarea, select { width: 100%; box-sizing: border-box; font: inherit; }
+      button { font: inherit; margin: 2px 2px 2px 0; cursor: pointer; }
+      code { word-break: break-all; color: #225; }
+      pre { background: #f6f6f6; padding: 6px; max-height: 130px; overflow: auto; white-space: pre-wrap; }
+      .hint { color: #888; font-size: 11px; margin: 2px 0; }
+      .verdict { font-weight: 700; margin-top: 8px; padding: 8px; border-radius: 4px; }
+      .verdict.ok { color: #0b6b2f; background: #e7f6ec; }
+      .verdict.deny { color: #8a1c13; background: #fdecea; }
+      .verdict.warn { color: #7a5800; background: #fff6e0; }
+    </style>
+  </head>
+  <body>
+    <h1>Agent Passport</h1>
+
+    <section>
+      <label
+        >Cluster
+        <select id="cluster">
+          <option value="localnet" selected>localnet</option>
+          <option value="devnet">devnet</option>
+          <option value="mainnet-beta">mainnet-beta</option>
+        </select>
+      </label>
+      <p class="hint">
+        Use <b>localnet</b> with <code>anchor localnet</code> running. devnet /
+        mainnet only work if the program is deployed there.
+      </p>
+    </section>
+
+    <section>
+      <h2>Agent identity</h2>
+      <div>Public key: <code id="agentPubkey">…</code></div>
+      <button id="ensureAgent">Create / load agent key</button>
+    </section>
+
+    <section>
+      <h2>Owner wallet (authority — local keypair, no Phantom)</h2>
+      <div>Public key: <code id="ownerPubkey">…</code></div>
+      <div>Balance: <code id="ownerBalance">—</code> SOL</div>
+      <button id="ensureOwner">Create / load owner key</button>
+      <button id="airdrop">Airdrop (localnet/devnet)</button>
+      <p class="hint">The owner signs &amp; pays for passport writes. Fund it before creating a passport.</p>
+    </section>
+
+    <section>
+      <h2>Passport</h2>
+      <label>Label <input id="label" type="text" maxlength="64" placeholder="My Agent" /></label>
+      <label
+        >Permissions (one scope per line)
+        <textarea id="permissions" rows="4" placeholder="calendar.read&#10;calendar.*"></textarea>
+      </label>
+      <button id="createPassport">Create</button>
+      <button id="updatePassport">Update</button>
+      <button id="revokePassport">Revoke</button>
+      <button id="loadPassport">Load from chain</button>
+      <div>On-chain scopes: <code id="onchainScopes">—</code></div>
+      <p class="hint">
+        Typing scopes grants nothing on its own — click <b>Create</b> to write them
+        on-chain. "Attempt" checks the on-chain passport, not this box.
+      </p>
+    </section>
+
+    <section>
+      <h2>Attempt an action (full verify)</h2>
+      <label>Action <input id="action" type="text" placeholder="calendar.read" /></label>
+      <button id="attemptAction">Attempt</button>
+      <p class="hint">
+        The agent signs the action and the verifier checks it against the live
+        on-chain passport — the real allow/deny decision is shown below.
+      </p>
+      <div id="verdict" class="verdict" style="display: none"></div>
+    </section>
+
+    <pre id="log"></pre>
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>
