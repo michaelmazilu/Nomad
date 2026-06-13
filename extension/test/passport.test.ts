@@ -68,7 +68,9 @@ describe("transaction construction", () => {
     const agent = Keypair.generate().publicKey;
     // Both initialize and update validate up front, before encoding/signing.
     expect(() =>
-      client.initializeIx(owner, agent, "x", ["NotAScope!!"]),
+      // authority + payer may be the same key (self-paying owner); permission
+      // validation runs before any account/borsh encoding either way.
+      client.initializeIx(owner, owner, agent, "x", ["NotAScope!!"]),
     ).toThrow(/invalid permissions/);
     expect(() => client.updateIx(owner, agent, null, ["also bad!!"])).toThrow(
       /invalid permissions/,

@@ -3,10 +3,13 @@ import type { VerifyStatus } from "@agent-passport/verifier";
 import type { InferenceRiskLevel } from "./inference";
 
 /**
- * Owner-wallet mode. `phantom` is the real path (keys stay in Phantom); `local`
- * is an explicitly dev-only in-extension keypair for localnet / CI.
+ * Owner-wallet mode.
+ * - `embedded`: in-app keypair is the authority, a backend sponsor pays fees/rent
+ *   (no wallet app, no SOL for the user). The recommended production path.
+ * - `phantom`: keys stay in Phantom; the user installs a wallet and pays.
+ * - `local`: explicitly dev-only in-extension keypair that self-pays (localnet/CI).
  */
-export type OwnerMode = "phantom" | "local";
+export type OwnerMode = "embedded" | "phantom" | "local";
 export type WalletProviderKind = "embedded" | "injected";
 
 /** Requests the popup (or an external page) sends to the background worker. */
@@ -14,6 +17,7 @@ export type Msg =
   | { type: "AGENT_ENSURE" }
   | { type: "AGENT_GET" }
   | { type: "PHANTOM_CONNECT"; cluster: Cluster }
+  | { type: "OWNER_EMBEDDED_ENSURE"; cluster: Cluster }
   | { type: "OWNER_LOCAL_ENSURE" }
   | { type: "OWNER_GET"; cluster: Cluster; mode: OwnerMode }
   | { type: "OWNER_AIRDROP"; cluster: Cluster; mode: OwnerMode }

@@ -12,6 +12,7 @@ function hostPermissionFor(url: string | undefined): string[] {
 const inferenceProxyHosts = hostPermissionFor(
   process.env.VITE_NOMAD_INFERENCE_PROXY_URL,
 );
+const sponsorHosts = hostPermissionFor(process.env.VITE_NOMAD_SPONSOR_URL);
 
 export default defineManifest({
   manifest_version: 3,
@@ -32,7 +33,10 @@ export default defineManifest({
     "http://localhost:5173/*",
     "http://localhost:8788/*",
     "http://127.0.0.1:8788/*",
+    "http://localhost:8790/*",
+    "http://127.0.0.1:8790/*",
     ...inferenceProxyHosts,
+    ...sponsorHosts,
     "http://127.0.0.1:8899/*",
     "https://api.devnet.solana.com/*",
     "https://api.mainnet-beta.solana.com/*",

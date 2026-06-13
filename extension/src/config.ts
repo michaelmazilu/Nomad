@@ -23,6 +23,15 @@ const env = (
 ).env;
 
 /**
+ * Sponsor backend: signs as fee payer and submits passport writes so an embedded
+ * owner key needs no SOL. Must end in a trailing slash (relative URL resolution).
+ * `VITE_NOMAD_SPONSOR_TOKEN`, if set, is sent as a bearer token to authenticate.
+ */
+export const SPONSOR_URL =
+  env?.VITE_NOMAD_SPONSOR_URL ?? "http://localhost:8790/";
+export const SPONSOR_AUTH_TOKEN = env?.VITE_NOMAD_SPONSOR_TOKEN ?? undefined;
+
+/**
  * Backend endpoint that turns extracted ChatGPT context into strict Nomad
  * inference JSON. Production builds should point this at a controlled proxy;
  * API keys must never be bundled into the extension.

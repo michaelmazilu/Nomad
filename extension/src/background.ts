@@ -14,11 +14,18 @@ import { PassportClient } from "./passportClient";
 import {
   LocalOwnerSigner,
   PhantomOwnerSigner,
+  SponsoredOwnerSigner,
   type OwnerSigner,
 } from "./ownerSigner";
+import { SponsorClient } from "./sponsorClient";
 import { TabPhantomBridge, type ConnectorMessage } from "./phantom";
 import { NotConnectedError, RpcError } from "./errors";
-import { CONNECTOR_URL, INFERENCE_PROXY_URL } from "./config";
+import {
+  CONNECTOR_URL,
+  INFERENCE_PROXY_URL,
+  SPONSOR_URL,
+  SPONSOR_AUTH_TOKEN,
+} from "./config";
 import { extractChatGptConversation } from "./chatgptExtractor";
 import {
   isSupportedChatGptUrl,
@@ -50,6 +57,20 @@ const agent = new AgentKeyManager(
 const localOwner = new OwnerWallet(
   new PlaintextKeyStore("agentPassport.ownerKey"),
 );
+// Embedded owner: an in-app authority key whose writes are paid by the sponsor
+// backend. Same in-extension keypair machinery as the local owner; the
+// difference is purely who pays (sponsor) and that it never needs funding.
+const embeddedOwner = new OwnerWallet(
+  new PlaintextKeyStore("agentPassport.embeddedOwnerKey"),
+);
+
+let sponsorSingleton: SponsorClient | null = null;
+function sponsor(): SponsorClient {
+  if (!sponsorSingleton) {
+    sponsorSingleton = new SponsorClient(SPONSOR_URL, SPONSOR_AUTH_TOKEN);
+  }
+  return sponsorSingleton;
+}
 
 const PHANTOM_KEY = "agentPassport.phantom";
 interface PhantomConnection {
@@ -95,9 +116,9 @@ async function getBalance(cluster: Cluster, pubkey: string): Promise<number> {
 }
 
 async function ownerAddress(mode: OwnerMode): Promise<string | null> {
-  return mode === "local"
-    ? localOwner.getPublicKey()
-    : ((await loadPhantom())?.publicKey ?? null);
+  if (mode === "local") return localOwner.getPublicKey();
+  if (mode === "embedded") return embeddedOwner.getPublicKey();
+  return (await loadPhantom())?.publicKey ?? null;
 }
 
 /** Resolve the active owner signer. Phantom never exposes its key to us. */
@@ -106,6 +127,12 @@ async function ownerSigner(
   cluster: Cluster,
 ): Promise<OwnerSigner> {
   if (mode === "local") return new LocalOwnerSigner(await localOwner.keypair());
+  if (mode === "embedded") {
+    const keypair = await embeddedOwner.keypair();
+    const client = sponsor();
+    const feePayer = await client.feePayer();
+    return new SponsoredOwnerSigner(keypair, client, feePayer);
+  }
   const conn = await loadPhantom();
   if (!conn)
     throw new NotConnectedError(
@@ -235,6 +262,16 @@ async function handle(msg: Msg): Promise<unknown> {
         balanceSol,
         providerKind,
         walletCluster,
+      } satisfies OwnerInfo;
+    }
+    case "OWNER_EMBEDDED_ENSURE": {
+      // Create (or load) the in-app authority key. It never needs funding — the
+      // sponsor pays — so balance is display-only and expected to be zero.
+      const ownerPublicKey = await embeddedOwner.getOrCreate();
+      return {
+        kind: "embedded",
+        ownerPublicKey,
+        balanceSol: await getBalance(msg.cluster, ownerPublicKey),
       } satisfies OwnerInfo;
     }
     case "OWNER_LOCAL_ENSURE": {

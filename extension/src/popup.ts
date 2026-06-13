@@ -395,6 +395,32 @@ el("connectOwner").addEventListener("click", () =>
     let keepAction = false;
     button.disabled = true;
     try {
+      if (ownerMode() === "embedded") {
+        // Embedded + sponsored: create the in-app authority key. No wallet app,
+        // no SOL — the sponsor backend pays for every passport write.
+        setPhantomAction("Creating");
+        log("creating embedded owner key (sponsored writes — no wallet needed)");
+        const o = await send<OwnerInfo>({
+          type: "OWNER_EMBEDDED_ENSURE",
+          cluster: cluster(),
+        });
+        applyOwnerInfo(o);
+        devWalletSkipped = true;
+        if (hasExtensionRuntime()) {
+          try {
+            await ensureAgentAfterWalletConnect();
+          } catch (e) {
+            log(
+              `error: agent sync failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
+          }
+        }
+        setPhantomAction("Ready", 1500);
+        keepAction = true;
+        log(`embedded owner ready: ${o.ownerPublicKey}`);
+        return;
+      }
+
       if (DEMO_PHANTOM_LOGIN.enabled) {
         setDemoPhantomPhase("securing");
         log("demo mode: restoring Phantom session");
