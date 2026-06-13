@@ -38,6 +38,13 @@ const cluster = (): Cluster =>
 const ownerMode = (): OwnerMode =>
   el<HTMLSelectElement>("ownerMode").value as OwnerMode;
 
+let currentAgent: AgentInfo = { agentPublicKey: null };
+let currentOwner: OwnerInfo = {
+  kind: null,
+  ownerPublicKey: null,
+  balanceSol: 0,
+};
+
 const scopes = (): string[] =>
   el<HTMLTextAreaElement>("permissions")
     .value.split("\n")
@@ -82,7 +89,23 @@ function ensureValidScopes(list: string[]): void {
     throw new Error(`invalid permissions: ${result.errors.join("; ")}`);
 }
 
+function renderStage(): void {
+  const walletConnected =
+    currentOwner.kind === "phantom" && Boolean(currentOwner.ownerPublicKey);
+  const agentSynced = Boolean(currentAgent.agentPublicKey);
+  el("walletGate").hidden = walletConnected;
+  el("agentGate").hidden = !walletConnected || agentSynced;
+  el("workspace").hidden = !walletConnected || !agentSynced;
+}
+
+function applyAgentInfo(a: AgentInfo): void {
+  currentAgent = a;
+  el("agentPubkey").textContent = a.agentPublicKey ?? "none";
+  renderStage();
+}
+
 function applyOwnerInfo(o: OwnerInfo): void {
+  currentOwner = o;
   el("ownerPubkey").textContent = o.ownerPublicKey ?? "none";
   el("ownerBalance").textContent = o.balanceSol.toFixed(4);
   const warn = el("ownerWarn");
@@ -91,21 +114,16 @@ function applyOwnerInfo(o: OwnerInfo): void {
   } else {
     warn.textContent = "";
   }
+  renderStage();
 }
 
 function syncOwnerControls(): void {
-  const phantom = ownerMode() === "phantom";
-  el("connectOwner").textContent = phantom
-    ? "Connect Phantom"
-    : "Create / load local wallet";
-  el("ownerHint").textContent = phantom
-    ? "Phantom signs & pays for passport writes; its private key never enters the extension."
-    : "DEV ONLY: a keypair generated and stored inside the extension. Do not use for real funds.";
+  el("ownerHint").textContent = "";
 }
 
 async function refresh(): Promise<void> {
   const a = await send<AgentInfo>({ type: "AGENT_GET" });
-  el("agentPubkey").textContent = a.agentPublicKey ?? "none";
+  applyAgentInfo(a);
   const o = await send<OwnerInfo>({
     type: "OWNER_GET",
     cluster: cluster(),
@@ -123,27 +141,20 @@ el("ownerMode").addEventListener("change", () => {
 el("ensureAgent").addEventListener("click", () =>
   withErrors(async () => {
     const { agentPublicKey } = await send<AgentInfo>({ type: "AGENT_ENSURE" });
-    el("agentPubkey").textContent = agentPublicKey ?? "none";
+    applyAgentInfo({ agentPublicKey });
     log(`agent ready: ${agentPublicKey}`);
   }),
 );
 
 el("connectOwner").addEventListener("click", () =>
   withErrors(async () => {
-    if (ownerMode() === "phantom") {
-      log("opening Phantom connector tab — approve the connection there…");
-      const o = await send<OwnerInfo>({
-        type: "PHANTOM_CONNECT",
-        cluster: cluster(),
-      });
-      applyOwnerInfo(o);
-      log(`Phantom connected: ${o.ownerPublicKey}`);
-    } else {
-      const o = await send<OwnerInfo>({ type: "OWNER_LOCAL_ENSURE" });
-      applyOwnerInfo(o);
-      log(`local dev wallet ready: ${o.ownerPublicKey}`);
-      await refresh();
-    }
+    log("opening Phantom connector tab — approve the connection there…");
+    const o = await send<OwnerInfo>({
+      type: "PHANTOM_CONNECT",
+      cluster: cluster(),
+    });
+    applyOwnerInfo(o);
+    log(`Phantom connected: ${o.ownerPublicKey}`);
   }),
 );
 
@@ -240,4 +251,7 @@ el("attemptAction").addEventListener("click", () =>
 );
 
 syncOwnerControls();
-void withErrors(refresh);
+renderStage();
+if (hasExtensionRuntime()) {
+  void withErrors(refresh);
+}
