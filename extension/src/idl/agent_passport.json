@@ -13,16 +13,7 @@
         "Close the passport, refunding rent to the authority. This is revocation:",
         "after close, reading the PDA returns no account."
       ],
-      "discriminator": [
-        198,
-        21,
-        251,
-        56,
-        20,
-        59,
-        143,
-        23
-      ],
+      "discriminator": [198, 21, 251, 56, 20, 59, 143, 23],
       "accounts": [
         {
           "name": "authority",
@@ -31,9 +22,7 @@
           ],
           "writable": true,
           "signer": true,
-          "relations": [
-            "passport"
-          ]
+          "relations": ["passport"]
         },
         {
           "name": "passport",
@@ -45,16 +34,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  115,
-                  115,
-                  112,
-                  111,
-                  114,
-                  116
-                ]
+                "value": [112, 97, 115, 115, 112, 111, 114, 116]
               },
               {
                 "kind": "account",
@@ -73,45 +53,23 @@
         "Create a passport PDA for `agent`, owned/edited by the signing `authority`.",
         "The agent key is identity-only and does NOT sign this instruction."
       ],
-      "discriminator": [
-        61,
-        77,
-        198,
-        139,
-        101,
-        90,
-        68,
-        137
-      ],
+      "discriminator": [61, 77, 198, 139, 101, 90, 68, 137],
       "accounts": [
         {
           "name": "authority",
-          "docs": [
-            "Owner wallet: authority + rent payer. Signs the write."
-          ],
+          "docs": ["Owner wallet: authority + rent payer. Signs the write."],
           "writable": true,
           "signer": true
         },
         {
           "name": "passport",
-          "docs": [
-            "Passport PDA, seeded by the agent identity pubkey."
-          ],
+          "docs": ["Passport PDA, seeded by the agent identity pubkey."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  115,
-                  115,
-                  112,
-                  111,
-                  114,
-                  116
-                ]
+                "value": [112, 97, 115, 115, 112, 111, 114, 116]
               },
               {
                 "kind": "arg",
@@ -149,26 +107,13 @@
         "is idempotent and free of lost-update hazards) and optionally the label.",
         "Only the stored `authority` may call this."
       ],
-      "discriminator": [
-        190,
-        35,
-        201,
-        204,
-        193,
-        197,
-        109,
-        69
-      ],
+      "discriminator": [190, 35, 201, 204, 193, 197, 109, 69],
       "accounts": [
         {
           "name": "authority",
-          "docs": [
-            "Must equal the passport's stored authority."
-          ],
+          "docs": ["Must equal the passport's stored authority."],
           "signer": true,
-          "relations": [
-            "passport"
-          ]
+          "relations": ["passport"]
         },
         {
           "name": "passport",
@@ -180,16 +125,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  115,
-                  115,
-                  112,
-                  111,
-                  114,
-                  116
-                ]
+                "value": [112, 97, 115, 115, 112, 111, 114, 116]
               },
               {
                 "kind": "account",
@@ -219,57 +155,21 @@
   "accounts": [
     {
       "name": "Passport",
-      "discriminator": [
-        18,
-        61,
-        245,
-        239,
-        6,
-        15,
-        18,
-        34
-      ]
+      "discriminator": [18, 61, 245, 239, 6, 15, 18, 34]
     }
   ],
   "events": [
     {
       "name": "PassportClosed",
-      "discriminator": [
-        250,
-        79,
-        10,
-        165,
-        212,
-        71,
-        11,
-        186
-      ]
+      "discriminator": [250, 79, 10, 165, 212, 71, 11, 186]
     },
     {
       "name": "PassportInitialized",
-      "discriminator": [
-        231,
-        242,
-        181,
-        232,
-        74,
-        20,
-        32,
-        137
-      ]
+      "discriminator": [231, 242, 181, 232, 74, 20, 32, 137]
     },
     {
       "name": "PassportUpdated",
-      "discriminator": [
-        55,
-        139,
-        137,
-        64,
-        153,
-        163,
-        91,
-        26
-      ]
+      "discriminator": [55, 139, 137, 64, 153, 163, 91, 26]
     }
   ],
   "errors": [
@@ -307,9 +207,7 @@
         "fields": [
           {
             "name": "version",
-            "docs": [
-              "Schema version (starts at 1; bump on layout change)."
-            ],
+            "docs": ["Schema version (starts at 1; bump on layout change)."],
             "type": "u8"
           },
           {
@@ -335,9 +233,7 @@
           },
           {
             "name": "label",
-            "docs": [
-              "Human-readable label."
-            ],
+            "docs": ["Human-readable label."],
             "type": "string"
           },
           {
@@ -351,16 +247,12 @@
           },
           {
             "name": "created_at",
-            "docs": [
-              "Creation time, Unix SECONDS."
-            ],
+            "docs": ["Creation time, Unix SECONDS."],
             "type": "i64"
           },
           {
             "name": "updated_at",
-            "docs": [
-              "Last update time, Unix SECONDS."
-            ],
+            "docs": ["Last update time, Unix SECONDS."],
             "type": "i64"
           }
         ]

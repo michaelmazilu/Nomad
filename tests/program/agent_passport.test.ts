@@ -145,7 +145,10 @@ describe("agent_passport", () => {
       await expectError(
         program.methods
           .initializePassport(agent, "x".repeat(65), ["calendar.read"])
-          .accountsPartial({ authority: authority.publicKey, passport: passportPda(agent) })
+          .accountsPartial({
+            authority: authority.publicKey,
+            passport: passportPda(agent),
+          })
           .rpc(),
         "LabelTooLong",
       );
@@ -157,7 +160,10 @@ describe("agent_passport", () => {
       await expectError(
         program.methods
           .initializePassport(agent, "Agent", many)
-          .accountsPartial({ authority: authority.publicKey, passport: passportPda(agent) })
+          .accountsPartial({
+            authority: authority.publicKey,
+            passport: passportPda(agent),
+          })
           .rpc(),
         "TooManyPermissions",
       );
@@ -168,7 +174,10 @@ describe("agent_passport", () => {
       await expectError(
         program.methods
           .initializePassport(agent, "Agent", [`calendar.${"x".repeat(64)}`])
-          .accountsPartial({ authority: authority.publicKey, passport: passportPda(agent) })
+          .accountsPartial({
+            authority: authority.publicKey,
+            passport: passportPda(agent),
+          })
           .rpc(),
         "ScopeTooLong",
       );
@@ -179,7 +188,10 @@ describe("agent_passport", () => {
       await expectError(
         program.methods
           .initializePassport(agent, "Agent", [""])
-          .accountsPartial({ authority: authority.publicKey, passport: passportPda(agent) })
+          .accountsPartial({
+            authority: authority.publicKey,
+            passport: passportPda(agent),
+          })
           .rpc(),
         "EmptyScope",
       );

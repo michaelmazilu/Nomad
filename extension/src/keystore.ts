@@ -43,7 +43,9 @@ function bufferSource(bytes: Uint8Array) {
 /** Plaintext store — NOT encrypted at rest. Explicit by design. */
 export class PlaintextKeyStore implements KeyStore {
   readonly encryptedAtRest = false;
-  constructor(private readonly storageKey = "agentPassport.secretKey.plaintext") {}
+  constructor(
+    private readonly storageKey = "agentPassport.secretKey.plaintext",
+  ) {}
 
   async has(): Promise<boolean> {
     return (await this.load()) !== null;
@@ -57,7 +59,9 @@ export class PlaintextKeyStore implements KeyStore {
     if (secretKey.length !== SECRET_KEY_LEN) {
       throw new Error(`secretKey must be ${SECRET_KEY_LEN} bytes`);
     }
-    await chrome.storage.local.set({ [this.storageKey]: bytesToBase64(secretKey) });
+    await chrome.storage.local.set({
+      [this.storageKey]: bytesToBase64(secretKey),
+    });
   }
   async clear(): Promise<void> {
     await chrome.storage.local.remove(this.storageKey);
@@ -152,7 +156,11 @@ export class EncryptedKeyStore implements KeyStore {
     const blob = got[this.storageKey] as EncryptedBlob | undefined;
     if (!blob) return null;
     const passphrase = this.requirePassphrase();
-    const key = await this.deriveKey(passphrase, base64ToBytes(blob.salt), blob.iter);
+    const key = await this.deriveKey(
+      passphrase,
+      base64ToBytes(blob.salt),
+      blob.iter,
+    );
     try {
       const pt = await crypto.subtle.decrypt(
         { name: "AES-GCM", iv: bufferSource(base64ToBytes(blob.iv)) },

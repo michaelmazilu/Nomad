@@ -20,4 +20,10 @@ export default defineManifest({
     "https://api.devnet.solana.com/*",
     "https://api.mainnet-beta.solana.com/*",
   ],
+  // The Phantom connector is a normal web page (Phantom does not inject into a
+  // chrome-extension:// context). It talks back to this extension over
+  // `externally_connectable`; only the connector's dev origin is allowed.
+  externally_connectable: {
+    matches: ["http://localhost:5173/*"],
+  },
 });

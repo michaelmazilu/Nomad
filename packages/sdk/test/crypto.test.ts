@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { Keypair } from "@solana/web3.js";
-import { sign, verify, toBase58, fromBase58, tryFromBase58 } from "../src/crypto";
+import {
+  sign,
+  verify,
+  toBase58,
+  fromBase58,
+  tryFromBase58,
+} from "../src/crypto";
 import { encodeActionMessage } from "../src/message";
 import { SECRET_KEY_LENGTH, SIGNATURE_LENGTH } from "../src/constants";
 
@@ -58,8 +64,12 @@ describe("crypto sign/verify", () => {
 
   it("verify returns false (never throws) on malformed inputs", () => {
     const kp = Keypair.generate();
-    expect(verify(new Uint8Array(4), new Uint8Array(10), kp.publicKey.toBytes())).toBe(false);
-    expect(verify(new Uint8Array(4), new Uint8Array(64), new Uint8Array(31))).toBe(false);
+    expect(
+      verify(new Uint8Array(4), new Uint8Array(10), kp.publicKey.toBytes()),
+    ).toBe(false);
+    expect(
+      verify(new Uint8Array(4), new Uint8Array(64), new Uint8Array(31)),
+    ).toBe(false);
   });
 
   it("base58 round-trips and tryFromBase58 is null-safe", () => {

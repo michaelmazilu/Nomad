@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Passport — Phantom connector</title>
+    <style>
+      body {
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        max-width: 520px;
+        margin: 40px auto;
+        padding: 0 16px;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      .status {
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin: 16px 0;
+      }
+      .status.info {
+        background: #eef3ff;
+        color: #1d3a8a;
+      }
+      .status.ok {
+        background: #e7f6ec;
+        color: #0b6b2f;
+      }
+      .status.error {
+        background: #fdecea;
+        color: #8a1c13;
+      }
+      code {
+        word-break: break-all;
+      }
+      .muted {
+        color: #777;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Agent Passport — Phantom connector</h1>
+    <p class="muted">
+      This page connects to Phantom and signs passport transactions on behalf of
+      the Agent Passport extension. Phantom signs; it never sends, and your
+      private key never leaves Phantom.
+    </p>
+    <div id="status" class="status info">Starting…</div>
+    <div id="detail" class="muted"></div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

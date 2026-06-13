@@ -89,7 +89,9 @@ describe("encodeActionMessage", () => {
       timestamp: 5,
       params: { c: "3", a: "1", b: "2" },
     };
-    expect(encodeActionMessage(AGENT, a)).toEqual(encodeActionMessage(AGENT, b));
+    expect(encodeActionMessage(AGENT, a)).toEqual(
+      encodeActionMessage(AGENT, b),
+    );
   });
 
   it("sorts param keys by UTF-8 bytes, not locale (uppercase before lowercase)", () => {
@@ -107,7 +109,11 @@ describe("encodeActionMessage", () => {
 
   it("omitted resource encodes identically to empty string", () => {
     const without: ActionRequest = { action: "x", timestamp: 1 };
-    const withEmpty: ActionRequest = { action: "x", resource: "", timestamp: 1 };
+    const withEmpty: ActionRequest = {
+      action: "x",
+      resource: "",
+      timestamp: 1,
+    };
     expect(encodeActionMessage(AGENT, without)).toEqual(
       encodeActionMessage(AGENT, withEmpty),
     );

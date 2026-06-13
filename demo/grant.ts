@@ -12,7 +12,12 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
 import {
   derivePassportPda,
   getClusterConfig,
@@ -24,7 +29,9 @@ import type { AgentPassport } from "../target/types/agent_passport";
 
 const [agentArg, scopesArg, labelArg] = process.argv.slice(2);
 if (!agentArg || !scopesArg) {
-  console.error('usage: npm run grant -- <AGENT_PUBKEY> "calendar.*,mail.send" ["Label"]');
+  console.error(
+    'usage: npm run grant -- <AGENT_PUBKEY> "calendar.*,mail.send" ["Label"]',
+  );
   process.exit(1);
 }
 
@@ -33,7 +40,10 @@ const cfg = getClusterConfig(
   cluster,
   process.env.RPC_URL ? { rpcUrl: process.env.RPC_URL } : {},
 );
-const scopes = scopesArg.split(",").map((s) => s.trim()).filter(Boolean);
+const scopes = scopesArg
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 const label = labelArg ?? "Granted Agent";
 
 const validation = validatePermissions(scopes);
@@ -64,7 +74,10 @@ async function main(): Promise<void> {
   if (cluster === "localnet") {
     const bal = await connection.getBalance(owner.publicKey);
     if (bal < LAMPORTS_PER_SOL) {
-      const sig = await connection.requestAirdrop(owner.publicKey, 2 * LAMPORTS_PER_SOL);
+      const sig = await connection.requestAirdrop(
+        owner.publicKey,
+        2 * LAMPORTS_PER_SOL,
+      );
       await connection.confirmTransaction(sig, "confirmed");
     }
   }
@@ -80,7 +93,9 @@ async function main(): Promise<void> {
         .accountsPartial({ authority: owner.publicKey, passport: pda })
         .rpc();
 
-  console.log(`${existing ? "updated" : "created"} passport: ${pda.toBase58()}`);
+  console.log(
+    `${existing ? "updated" : "created"} passport: ${pda.toBase58()}`,
+  );
   console.log(`agent : ${agent.toBase58()}`);
   console.log(`scopes: ${scopes.join(", ")}`);
   console.log(`tx    : ${sig}`);

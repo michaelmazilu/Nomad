@@ -52,7 +52,10 @@ async function main(): Promise<void> {
   if (cluster === "localnet") {
     const bal = await connection.getBalance(owner.publicKey);
     if (bal < LAMPORTS_PER_SOL) {
-      const sig = await connection.requestAirdrop(owner.publicKey, 2 * LAMPORTS_PER_SOL);
+      const sig = await connection.requestAirdrop(
+        owner.publicKey,
+        2 * LAMPORTS_PER_SOL,
+      );
       await connection.confirmTransaction(sig, "confirmed");
     }
   }
@@ -81,9 +84,14 @@ async function main(): Promise<void> {
     console.log(`  ${label.padEnd(46)} -> ${r.status}`);
   };
 
-  console.log("\n[write] owner creates passport: scopes [calendar.read, calendar.*]");
+  console.log(
+    "\n[write] owner creates passport: scopes [calendar.read, calendar.*]",
+  );
   await program.methods
-    .initializePassport(agent.publicKey, "Demo Agent", ["calendar.read", "calendar.*"])
+    .initializePassport(agent.publicKey, "Demo Agent", [
+      "calendar.read",
+      "calendar.*",
+    ])
     .accountsPartial({ authority: owner.publicKey, passport: pda })
     .rpc();
 

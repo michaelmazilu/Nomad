@@ -45,9 +45,9 @@ describe("validateScope", () => {
     expect(validateScope("widget.read", { knownNamespaces: ["widget"] })).toBe(
       true,
     );
-    expect(validateScope("calendar.read", { knownNamespaces: ["widget"] })).toBe(
-      false,
-    );
+    expect(
+      validateScope("calendar.read", { knownNamespaces: ["widget"] }),
+    ).toBe(false);
   });
 
   it("isWildcardScope detects trailing .*", () => {

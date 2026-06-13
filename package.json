@@ -7,7 +7,8 @@
   "workspaces": [
     "packages/*",
     "verifier",
-    "extension"
+    "extension",
+    "connector"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

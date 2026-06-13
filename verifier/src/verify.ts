@@ -80,7 +80,10 @@ export async function verify(
   try {
     alreadySeen = await config.replayCache.has(signature);
   } catch (e) {
-    return deny("verifier_unavailable", `replay cache read failed: ${asMessage(e)}`);
+    return deny(
+      "verifier_unavailable",
+      `replay cache read failed: ${asMessage(e)}`,
+    );
   }
   if (alreadySeen) {
     return deny("replay", "signature already seen");
@@ -104,7 +107,10 @@ export async function verify(
   try {
     await config.replayCache.add(signature, config.skewMs);
   } catch (e) {
-    return deny("verifier_unavailable", `replay cache write failed: ${asMessage(e)}`);
+    return deny(
+      "verifier_unavailable",
+      `replay cache write failed: ${asMessage(e)}`,
+    );
   }
 
   // 5. On-chain read — the only network call. Fail closed on any error.
@@ -112,15 +118,25 @@ export async function verify(
   try {
     passport = await config.reader.get(new PublicKey(agentBytes));
   } catch (e) {
-    return deny("verifier_unavailable", `passport read failed: ${asMessage(e)}`);
+    return deny(
+      "verifier_unavailable",
+      `passport read failed: ${asMessage(e)}`,
+    );
   }
   if (passport === null) {
-    return deny("no_passport", "no passport at the derived PDA (unregistered or revoked)");
+    return deny(
+      "no_passport",
+      "no passport at the derived PDA (unregistered or revoked)",
+    );
   }
 
   // 6. Permission check (local)
   if (!permits(passport.permissions, request.action)) {
-    return deny("not_permitted", `action "${request.action}" not permitted`, passport);
+    return deny(
+      "not_permitted",
+      `action "${request.action}" not permitted`,
+      passport,
+    );
   }
   return { status: "ok", ok: true, passport };
 }

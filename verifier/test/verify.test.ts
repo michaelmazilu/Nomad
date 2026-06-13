@@ -70,7 +70,9 @@ describe("verify pipeline — one case per outcome", () => {
     const kp = Keypair.generate();
     const input = signedInput(kp, { action: "calendar.read", timestamp: NOW });
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
     );
     const r = await verify(input, config);
     expect(r.status).toBe("ok");
@@ -85,7 +87,9 @@ describe("verify pipeline — one case per outcome", () => {
       timestamp: NOW,
     });
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.*"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.*"]),
+      }),
     );
     expect((await verify(input, config)).status).toBe("ok");
   });
@@ -94,7 +98,9 @@ describe("verify pipeline — one case per outcome", () => {
     const kp = Keypair.generate();
     const input = signedInput(kp, { action: "mail.send", timestamp: NOW });
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
     );
     const r = await verify(input, config);
     expect(r.status).toBe("not_permitted");
@@ -115,7 +121,9 @@ describe("verify pipeline — one case per outcome", () => {
       timestamp: NOW - 61_000,
     });
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
     );
     expect((await verify(input, config)).status).toBe("stale_or_future");
   });
@@ -127,7 +135,9 @@ describe("verify pipeline — one case per outcome", () => {
       timestamp: NOW + 61_000,
     });
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
     );
     expect((await verify(input, config)).status).toBe("stale_or_future");
   });
@@ -137,7 +147,9 @@ describe("verify pipeline — one case per outcome", () => {
     const input = signedInput(kp, { action: "calendar.read", timestamp: NOW });
     input.signature = toBase58(Uint8Array.from({ length: 64 }, () => 1));
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
     );
     expect((await verify(input, config)).status).toBe("bad_signature");
   });
@@ -148,7 +160,10 @@ describe("verify pipeline — one case per outcome", () => {
     input.request = { ...input.request, action: "calendar.write" };
     const config = makeConfig(
       fakeReader({
-        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read", "calendar.write"]),
+        passport: passportFor(kp.publicKey.toBase58(), [
+          "calendar.read",
+          "calendar.write",
+        ]),
       }),
     );
     expect((await verify(input, config)).status).toBe("bad_signature");
@@ -157,7 +172,11 @@ describe("verify pipeline — one case per outcome", () => {
   it("bad_signature: malformed base58 inputs", async () => {
     const config = makeConfig(fakeReader({ passport: null }));
     const r = await verify(
-      { agentPublicKey: "!!!", signature: "!!!", request: { action: "x", timestamp: NOW } },
+      {
+        agentPublicKey: "!!!",
+        signature: "!!!",
+        request: { action: "x", timestamp: NOW },
+      },
       config,
     );
     expect(r.status).toBe("bad_signature");
@@ -167,7 +186,9 @@ describe("verify pipeline — one case per outcome", () => {
     const kp = Keypair.generate();
     const input = signedInput(kp, { action: "calendar.read", timestamp: NOW });
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
     );
     expect((await verify(input, config)).status).toBe("ok");
     expect((await verify(input, config)).status).toBe("replay");
@@ -192,7 +213,9 @@ describe("verify pipeline — one case per outcome", () => {
       add() {},
     };
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
       { replayCache: throwingCache },
     );
     expect((await verify(input, config)).status).toBe("verifier_unavailable");
@@ -210,7 +233,9 @@ describe("verify pipeline — one case per outcome", () => {
       },
     };
     const config = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
       { replayCache: throwingCache },
     );
     expect((await verify(input, config)).status).toBe("verifier_unavailable");
@@ -224,7 +249,9 @@ describe("verify pipeline — one case per outcome", () => {
     expect((await verify(input, failing)).status).toBe("verifier_unavailable");
     // Same signature retried after the failure is now treated as a replay.
     const recovered = makeConfig(
-      fakeReader({ passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]) }),
+      fakeReader({
+        passport: passportFor(kp.publicKey.toBase58(), ["calendar.read"]),
+      }),
       { replayCache },
     );
     expect((await verify(input, recovered)).status).toBe("replay");

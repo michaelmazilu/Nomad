@@ -1,0 +1,22 @@
+{
+  "name": "@agent-passport/connector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Phantom connector web page: connects to Phantom and signs passport-write transactions, relaying results to the extension over externally_connectable.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5173 --strictPort",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.11"
+  }
+}
