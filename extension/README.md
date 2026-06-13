@@ -1,4 +1,4 @@
-# Agent Passport — Browser Extension (MV3)
+# Nomad — Browser Extension (MV3)
 
 Self-contained control surface: create an agent identity, manage its on-chain
 permission passport, and test whether the agent is allowed to take an action —

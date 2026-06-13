@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Agent Passport</title>
+    <title>Nomad</title>
     <style>
       body {
         font:
@@ -35,169 +35,243 @@
       textarea,
       select {
         width: 100%;
-        box-sizing: border-box;
-        font: inherit;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: var(--paper-strong);
+        color: var(--ink);
+        outline: none;
       }
-      button {
-        font: inherit;
-        margin: 2px 2px 2px 0;
-        cursor: pointer;
+
+      input,
+      select {
+        min-height: 38px;
+        padding: 8px 10px;
       }
+
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+        padding: 10px;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: var(--charcoal-2);
+        box-shadow: 0 0 0 3px rgba(197, 160, 93, 0.18);
+      }
+
       code {
+        color: var(--charcoal);
+        font-family: var(--mono);
+        font-size: 12px;
         word-break: break-all;
-        color: #225;
       }
+
+      .key-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .key-row {
+        display: grid;
+        gap: 3px;
+        padding: 10px;
+        border: 1px solid rgba(223, 219, 210, 0.82);
+        border-radius: 8px;
+        background: rgba(248, 246, 242, 0.74);
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 11px;
+      }
+
+      .split-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .metric {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 8px;
+        padding-top: 9px;
+        border-top: 1px solid rgba(223, 219, 210, 0.78);
+      }
+
+      .hint {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .scope-readout {
+        margin-top: 11px;
+        padding: 10px;
+        border: 1px solid rgba(223, 219, 210, 0.88);
+        border-radius: 8px;
+        background: rgba(248, 246, 242, 0.82);
+      }
+
+      .verdict {
+        display: none;
+        margin-top: 11px;
+        padding: 11px;
+        border-radius: 8px;
+        border: 1px solid currentColor;
+        font-weight: 800;
+      }
+
+      .verdict.ok {
+        color: var(--green);
+        background: rgba(47, 111, 85, 0.1);
+      }
+
+      .verdict.deny {
+        color: var(--red);
+        background: rgba(157, 74, 63, 0.1);
+      }
+
+      .verdict.warn {
+        color: #8a6626;
+        background: rgba(197, 160, 93, 0.14);
+      }
+
       pre {
-        background: #f6f6f6;
-        padding: 6px;
-        max-height: 130px;
+        max-height: 120px;
+        margin: 10px 0 0;
         overflow: auto;
         white-space: pre-wrap;
       }
-      .hint {
-        color: #888;
-        font-size: 11px;
-        margin: 2px 0;
-      }
-      .row {
-        display: flex;
-        justify-content: space-between;
-        gap: 8px;
-      }
-      .verdict {
-        font-weight: 700;
-        margin-top: 8px;
-        padding: 8px;
-        border-radius: 4px;
-      }
-      .verdict.ok {
-        color: #0b6b2f;
-        background: #e7f6ec;
-      }
-      .verdict.deny {
-        color: #8a1c13;
-        background: #fdecea;
-      }
-      .verdict.warn {
-        color: #7a5800;
-        background: #fff6e0;
-      }
-      .status {
-        margin-top: 6px;
-        padding: 6px 8px;
-        border-radius: 4px;
-        display: none;
-      }
-      .status.pending {
-        color: #1d3a8a;
-        background: #eef3ff;
-      }
-      .status.ok {
-        color: #0b6b2f;
-        background: #e7f6ec;
-      }
-      .status.error {
-        color: #8a1c13;
-        background: #fdecea;
-      }
-      .warnNote {
-        color: #7a5800;
+
+      .activity {
+        color: var(--muted);
+        font-family: var(--mono);
         font-size: 11px;
       }
     </style>
   </head>
   <body>
-    <h1>Agent Passport</h1>
+    <main class="shell">
+      <section class="hero" aria-labelledby="nomad-title">
+        <h1 id="nomad-title">Nomad</h1>
+        <p class="subtitle">Portable permission passports for agent actions.</p>
+      </section>
 
-    <section>
-      <label
-        >Cluster
-        <select id="cluster">
-          <option value="localnet" selected>localnet</option>
-          <option value="devnet">devnet</option>
-          <option value="mainnet-beta">mainnet-beta</option>
-        </select>
-      </label>
-      <p class="hint">
-        Phantom supports devnet &amp; mainnet. For localnet, the connector signs
-        with Phantom and the extension submits to <code>anchor localnet</code>.
-      </p>
-    </section>
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Network</h2>
+          <span class="status">source of truth</span>
+        </div>
+        <label>
+          Cluster
+          <select id="cluster">
+            <option value="localnet" selected>localnet</option>
+            <option value="devnet">devnet</option>
+            <option value="mainnet-beta">mainnet-beta</option>
+          </select>
+        </label>
+        <p class="hint">Use localnet while the validator is running.</p>
+      </section>
 
-    <section>
-      <h2>Agent identity</h2>
-      <div>Public key: <code id="agentPubkey">…</code></div>
-      <button id="ensureAgent">Create / load agent key</button>
-      <p class="hint">
-        The agent key signs action requests only — never passport writes.
-      </p>
-    </section>
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Identity</h2>
+          <span class="status">agent key</span>
+        </div>
+        <div class="key-list">
+          <div class="key-row">
+            <span class="eyebrow">Public key</span>
+            <code id="agentPubkey">none</code>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="ensureAgent">Create / load agent key</button>
+        </div>
+      </section>
 
-    <section>
-      <h2>Owner wallet (authority)</h2>
-      <label
-        >Owner
-        <select id="ownerMode">
-          <option value="phantom" selected>Phantom (recommended)</option>
-          <option value="local">Local keypair (dev only)</option>
-        </select>
-      </label>
-      <button id="connectOwner">Connect Phantom</button>
-      <button id="airdrop">Airdrop (localnet/devnet)</button>
-      <div class="row">
-        <span>Address:</span> <code id="ownerPubkey">none</code>
-      </div>
-      <div class="row">
-        <span>Balance:</span> <code id="ownerBalance">—</code> SOL
-      </div>
-      <div id="ownerWarn" class="warnNote"></div>
-      <p id="ownerHint" class="hint">
-        Phantom signs &amp; pays for passport writes; its private key never
-        enters the extension. The local keypair is dev-only and stored in the
-        extension.
-      </p>
-    </section>
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Authority</h2>
+          <span class="status">local owner</span>
+        </div>
+        <div class="key-list">
+          <div class="key-row">
+            <span class="eyebrow">Public key</span>
+            <code id="ownerPubkey">none</code>
+          </div>
+        </div>
+        <div class="metric">
+          <span class="eyebrow">Balance</span>
+          <span><code id="ownerBalance">0.0000</code> SOL</span>
+        </div>
+        <div class="button-row">
+          <button id="ensureOwner">Create / load owner key</button>
+          <button id="airdrop" class="secondary">Airdrop</button>
+        </div>
+      </section>
 
-    <section>
-      <h2>Passport</h2>
-      <label
-        >Label
-        <input id="label" type="text" maxlength="64" placeholder="My Agent"
-      /></label>
-      <label
-        >Permissions (one scope per line)
-        <textarea
-          id="permissions"
-          rows="4"
-          placeholder="calendar.read&#10;calendar.*"
-        ></textarea>
-      </label>
-      <button id="createPassport">Create</button>
-      <button id="updatePassport">Update</button>
-      <button id="revokePassport">Revoke</button>
-      <button id="loadPassport">Load from chain</button>
-      <div>On-chain scopes: <code id="onchainScopes">—</code></div>
-      <div id="txStatus" class="status"></div>
-      <p class="hint">
-        Permissions are validated before a signature is requested. Writing opens
-        the Phantom connector tab to approve &amp; sign.
-      </p>
-    </section>
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Passport</h2>
+          <span class="status">on-chain scopes</span>
+        </div>
+        <label>
+          Label
+          <input id="label" type="text" maxlength="64" placeholder="My Agent" />
+        </label>
+        <label>
+          Permissions
+          <textarea
+            id="permissions"
+            rows="4"
+            placeholder="calendar.read&#10;calendar.*"
+          ></textarea>
+        </label>
+        <div class="button-row">
+          <button id="createPassport">Create</button>
+          <button id="updatePassport" class="secondary">Update</button>
+          <button id="revokePassport" class="danger">Revoke</button>
+          <button id="loadPassport" class="secondary">Load from chain</button>
+        </div>
+        <div class="scope-readout">
+          <span class="eyebrow">On-chain scopes</span>
+          <div><code id="onchainScopes">none</code></div>
+        </div>
+      </section>
 
-    <section>
-      <h2>Attempt an action (full verify)</h2>
-      <label
-        >Action <input id="action" type="text" placeholder="calendar.read"
-      /></label>
-      <button id="attemptAction">Attempt</button>
-      <p class="hint">
-        The agent signs the action and the verifier checks it against the live
-        on-chain passport — the real allow/deny decision is shown below.
-      </p>
-      <div id="verdict" class="verdict" style="display: none"></div>
-    </section>
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Verify</h2>
+          <span class="status">signed action</span>
+        </div>
+        <label>
+          Action
+          <input id="action" type="text" placeholder="calendar.read" />
+        </label>
+        <div class="button-row">
+          <button id="attemptAction">Attempt</button>
+        </div>
+        <div id="verdict" class="verdict"></div>
+      </section>
 
-    <pre id="log"></pre>
+      <pre id="log" class="activity"></pre>
+    </main>
     <script type="module" src="./popup.ts"></script>
   </body>
 </html>

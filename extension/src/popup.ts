@@ -14,6 +14,10 @@ import type {
 const el = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
 
+const hasExtensionRuntime = (): boolean =>
+  typeof chrome !== "undefined" &&
+  typeof chrome.runtime?.sendMessage === "function";
+
 function log(message: string): void {
   const pre = el("log");
   pre.textContent = `${new Date().toISOString()}  ${message}\n${pre.textContent ?? ""}`;
@@ -21,6 +25,9 @@ function log(message: string): void {
 
 /** Send a message to the background worker; throws on a structured error. */
 async function send<T>(msg: Msg): Promise<T> {
+  if (!hasExtensionRuntime()) {
+    throw new Error("Nomad extension runtime unavailable");
+  }
   const res: Response = await chrome.runtime.sendMessage(msg);
   if (!res.ok) throw new Error(res.error);
   return res.data as T;
