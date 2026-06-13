@@ -1,8 +1,13 @@
-import { validatePermissions, type Cluster } from "@agent-passport/sdk";
+import {
+  MAX_LABEL_LEN,
+  validatePermissions,
+  type Cluster,
+} from "@agent-passport/sdk";
 import type {
   AgentInfo,
   AirdropResult,
   AttemptResult,
+  InferenceResult,
   Msg,
   OwnerInfo,
   OwnerMode,
@@ -27,11 +32,25 @@ declare global {
 const el = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
 
+function setText(id: string, text: string): void {
+  const node = document.getElementById(id);
+  if (node) node.textContent = text;
+}
+
 const hasExtensionRuntime = (): boolean =>
   typeof chrome !== "undefined" &&
   typeof chrome.runtime?.sendMessage === "function";
 
+const hasStorage = (): boolean =>
+  typeof chrome !== "undefined" &&
+  typeof chrome.storage?.local?.get === "function";
+
 function log(message: string): void {
+  const out = document.getElementById("log");
+  if (out) {
+    const line = `${new Date().toLocaleTimeString()} ${message}`;
+    out.textContent = `${line}\n${out.textContent ?? ""}`.slice(0, 4000);
+  }
   if (message.startsWith("error:")) {
     console.error(`[Nomad] ${message}`);
     return;
@@ -89,12 +108,37 @@ let currentOwner: OwnerInfo = {
   balanceSol: 0,
 };
 let devWalletSkipped = false;
+const SETTINGS_KEY = "agentPassport.settings";
+interface PopupSettings {
+  reviewBeforeApply: boolean;
+}
+const DEFAULT_SETTINGS: PopupSettings = { reviewBeforeApply: false };
+let settings: PopupSettings = { ...DEFAULT_SETTINGS };
+let pendingInference: InferenceResult | null = null;
+const textEncoder = new TextEncoder();
 
 const scopes = (): string[] =>
   el<HTMLTextAreaElement>("permissions")
     .value.split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+
+async function loadSettings(): Promise<void> {
+  if (!hasStorage()) return;
+  const got = await chrome.storage.local.get(SETTINGS_KEY);
+  settings = {
+    ...DEFAULT_SETTINGS,
+    ...((got[SETTINGS_KEY] as Partial<PopupSettings> | undefined) ?? {}),
+  };
+  el<HTMLInputElement>("reviewBeforeApply").checked =
+    settings.reviewBeforeApply;
+}
+
+async function saveSettings(next: Partial<PopupSettings>): Promise<void> {
+  settings = { ...settings, ...next };
+  if (hasStorage())
+    await chrome.storage.local.set({ [SETTINGS_KEY]: settings });
+}
 
 async function withErrors(fn: () => Promise<void>): Promise<void> {
   try {
@@ -129,9 +173,16 @@ function showVerdict(result: AttemptResult): void {
 
 /** Reject early — before any signature is requested — if scopes are malformed. */
 function ensureValidScopes(list: string[]): void {
-  const result = validatePermissions(list);
+  const result = validatePermissions(list, { namespaceMode: "dynamic" });
   if (!result.ok)
     throw new Error(`invalid permissions: ${result.errors.join("; ")}`);
+}
+
+function ensureValidLabel(label: string): void {
+  const bytes = textEncoder.encode(label).length;
+  if (bytes > MAX_LABEL_LEN) {
+    throw new Error(`label exceeds ${MAX_LABEL_LEN} bytes`);
+  }
 }
 
 function renderStage(): void {
@@ -142,21 +193,28 @@ function renderStage(): void {
   el("walletGate").hidden = walletConnected;
   el("postWallet").hidden = !walletConnected;
   el("agentGate").hidden = !walletConnected || agentSynced;
-  el("workspace").hidden = !walletConnected;
+  el("workspace").hidden = !walletConnected || !agentSynced;
+  el("settingsActions").hidden = !walletConnected;
+  setText("settingsCluster", cluster());
 }
 
 function applyAgentInfo(a: AgentInfo): void {
   currentAgent = a;
   const agentPublicKey = a.agentPublicKey ?? "none";
-  el("agentPubkey").textContent = agentPublicKey;
-  el("workspaceAgentPubkey").textContent = agentPublicKey;
+  setText("settingsAgentPubkey", agentPublicKey);
   renderStage();
 }
 
 function applyOwnerInfo(o: OwnerInfo): void {
   currentOwner = o;
-  el("ownerPubkey").textContent = o.ownerPublicKey ?? "none";
-  el("ownerBalance").textContent = o.balanceSol.toFixed(4);
+  setText("settingsOwnerPubkey", o.ownerPublicKey ?? "none");
+  setText("settingsOwnerBalance", o.balanceSol.toFixed(4));
+  setText(
+    "settingsWalletCluster",
+    o.walletCluster
+      ? `${o.walletCluster}${o.walletCluster !== cluster() ? " (mismatch)" : ""}`
+      : "unknown",
+  );
   const warn = el("ownerWarn");
   if (o.walletCluster && o.walletCluster !== cluster()) {
     warn.textContent = `⚠ Phantom is on "${o.walletCluster}" but "${cluster()}" is selected — signing will be blocked.`;
@@ -214,6 +272,96 @@ async function refresh(): Promise<void> {
   applyOwnerInfo(o);
 }
 
+function showInferenceStatus(
+  text: string,
+  klass: "pending" | "ok" | "error",
+): void {
+  const s = el("inferenceStatus");
+  s.textContent = text;
+  s.className = `status ${klass}`;
+  s.style.display = "block";
+}
+
+function inferenceSummary(result: InferenceResult): string {
+  const warnings =
+    result.warnings.length > 0 ? ` Warnings: ${result.warnings.join(" ")}` : "";
+  return `Inferred ${result.scopes.length} scope(s). Risk: ${result.riskLevel}.${warnings}`;
+}
+
+function applyInferenceResult(result: InferenceResult): void {
+  el<HTMLInputElement>("label").value = result.label;
+  el<HTMLTextAreaElement>("permissions").value = result.scopes.join("\n");
+  if (result.testAction) {
+    el<HTMLInputElement>("action").value = result.testAction;
+  }
+  el("inferenceProposal").hidden = true;
+  pendingInference = null;
+  showInferenceStatus(inferenceSummary(result), "ok");
+  log(`inferred fields from ${result.source.url}`);
+}
+
+function showInferenceProposal(result: InferenceResult): void {
+  pendingInference = result;
+  setText("proposalLabel", result.label);
+  setText("proposalScopes", result.scopes.join("\n"));
+  setText("proposalAction", result.testAction ?? "none");
+  setText(
+    "proposalWarnings",
+    result.warnings.length > 0
+      ? result.warnings.join("\n")
+      : `Risk: ${result.riskLevel}`,
+  );
+  el("inferenceProposal").hidden = false;
+  showInferenceStatus("Review inferred fields before applying.", "pending");
+}
+
+el("settingsToggle").addEventListener("click", () => {
+  const panel = el("settingsPanel");
+  panel.hidden = !panel.hidden;
+  el("settingsToggle").setAttribute("aria-expanded", String(!panel.hidden));
+});
+
+el<HTMLInputElement>("reviewBeforeApply").addEventListener("change", (e) => {
+  const target = e.currentTarget as HTMLInputElement;
+  void withErrors(async () => {
+    await saveSettings({ reviewBeforeApply: target.checked });
+    log(`review before apply ${target.checked ? "enabled" : "disabled"}`);
+  });
+});
+
+el("inferFromChatGpt").addEventListener("click", () =>
+  withErrors(async () => {
+    const button = el<HTMLButtonElement>("inferFromChatGpt");
+    button.disabled = true;
+    try {
+      showInferenceStatus("Reading ChatGPT tab…", "pending");
+      const result = await send<InferenceResult>({
+        type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB",
+      });
+      if (settings.reviewBeforeApply) {
+        showInferenceProposal(result);
+      } else {
+        applyInferenceResult(result);
+      }
+    } catch (e) {
+      showInferenceStatus("Inference failed — see settings log.", "error");
+      throw e;
+    } finally {
+      button.disabled = false;
+    }
+  }),
+);
+
+el("applyInference").addEventListener("click", () => {
+  if (pendingInference) applyInferenceResult(pendingInference);
+});
+
+el("cancelInference").addEventListener("click", () => {
+  pendingInference = null;
+  el("inferenceProposal").hidden = true;
+  showInferenceStatus("Inference proposal canceled.", "pending");
+});
+
 el("cluster").addEventListener("change", () => void withErrors(refresh));
 el("ownerMode").addEventListener("change", () => {
   syncOwnerControls();
@@ -221,14 +369,6 @@ el("ownerMode").addEventListener("change", () => {
 });
 
 el("ensureAgent").addEventListener("click", () =>
-  withErrors(async () => {
-    const { agentPublicKey } = await send<AgentInfo>({ type: "AGENT_ENSURE" });
-    applyAgentInfo({ agentPublicKey });
-    log(`agent ready: ${agentPublicKey}`);
-  }),
-);
-
-el("resyncAgent").addEventListener("click", () =>
   withErrors(async () => {
     const { agentPublicKey } = await send<AgentInfo>({ type: "AGENT_ENSURE" });
     applyAgentInfo({ agentPublicKey });
@@ -293,7 +433,7 @@ el("connectOwner").addEventListener("click", () =>
           setPhantomAction("Unavailable", 2500);
           keepAction = true;
           log(
-            "error: Phantom is not injected in this browser preview. Load the unpacked Nomad extension in Chrome with Phantom installed, or use Skip for dev.",
+            "error: Phantom is not injected in this browser preview. Load the unpacked Nomad extension in Chrome with Phantom installed.",
           );
           return;
         }
@@ -320,13 +460,6 @@ el("connectOwner").addEventListener("click", () =>
         cluster: cluster(),
       });
       applyOwnerInfo(o);
-      try {
-        await ensureAgentAfterWalletConnect();
-      } catch (e) {
-        log(
-          `error: agent sync failed: ${e instanceof Error ? e.message : String(e)}`,
-        );
-      }
       setPhantomAction("Connected", 1500);
       keepAction = true;
       log(`Phantom connected: ${o.ownerPublicKey}`);
@@ -337,15 +470,15 @@ el("connectOwner").addEventListener("click", () =>
   }),
 );
 
-el("skipWallet").addEventListener("click", () => {
+document.getElementById("skipWallet")?.addEventListener("click", () => {
   devWalletSkipped = true;
   currentOwner = {
     kind: "phantom",
     ownerPublicKey: "skipped for dev",
     balanceSol: 0,
   };
-  el("ownerPubkey").textContent = currentOwner.ownerPublicKey;
-  el("ownerBalance").textContent = currentOwner.balanceSol.toFixed(4);
+  setText("settingsOwnerPubkey", currentOwner.ownerPublicKey ?? "none");
+  setText("settingsOwnerBalance", currentOwner.balanceSol.toFixed(4));
   renderStage();
   log("wallet connect skipped for dev");
 });
@@ -357,7 +490,7 @@ el("airdrop").addEventListener("click", () =>
       cluster: cluster(),
       mode: ownerMode(),
     });
-    el("ownerBalance").textContent = r.balanceSol.toFixed(4);
+    setText("settingsOwnerBalance", r.balanceSol.toFixed(4));
     log(`airdrop ok, balance ${r.balanceSol} SOL`);
   }),
 );
@@ -365,13 +498,15 @@ el("airdrop").addEventListener("click", () =>
 el("createPassport").addEventListener("click", () =>
   withErrors(async () => {
     const list = scopes();
+    const label = el<HTMLInputElement>("label").value;
+    ensureValidLabel(label);
     ensureValidScopes(list);
     showTx("Submitting create… approve in Phantom if prompted.", "pending");
     const r = await send<TxResult>({
       type: "PASSPORT_CREATE",
       cluster: cluster(),
       mode: ownerMode(),
-      label: el<HTMLInputElement>("label").value,
+      label,
       scopes: list,
     });
     showTx(`Created ✓  sig: ${r.txSig}`, "ok");
@@ -384,6 +519,7 @@ el("updatePassport").addEventListener("click", () =>
     const list = scopes();
     ensureValidScopes(list);
     const label = el<HTMLInputElement>("label").value;
+    ensureValidLabel(label);
     showTx("Submitting update… approve in Phantom if prompted.", "pending");
     const r = await send<TxResult>({
       type: "PASSPORT_UPDATE",
@@ -447,6 +583,7 @@ window.addEventListener("pointermove", syncLiquidButtonPointer);
 window.addEventListener("pointerup", releaseLiquidButton);
 syncOwnerControls();
 renderStage();
+void withErrors(loadSettings);
 if (hasExtensionRuntime()) {
   void withErrors(refresh);
 }

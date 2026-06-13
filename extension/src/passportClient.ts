@@ -192,7 +192,7 @@ export class PassportClient {
 }
 
 function requireValid(permissions: string[]): void {
-  const result = validatePermissions(permissions);
+  const result = validatePermissions(permissions, { namespaceMode: "dynamic" });
   if (!result.ok) {
     throw new OwnerError(
       "invalid_permissions",

@@ -1,5 +1,18 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 
+function hostPermissionFor(url: string | undefined): string[] {
+  if (!url) return [];
+  try {
+    return [`${new URL(url).origin}/*`];
+  } catch {
+    return [];
+  }
+}
+
+const inferenceProxyHosts = hostPermissionFor(
+  process.env.VITE_NOMAD_INFERENCE_PROXY_URL,
+);
+
 export default defineManifest({
   manifest_version: 3,
   name: "Nomad",
@@ -14,9 +27,12 @@ export default defineManifest({
     service_worker: "src/background.ts",
     type: "module",
   },
-  permissions: ["storage"],
+  permissions: ["storage", "activeTab", "scripting"],
   host_permissions: [
     "http://localhost:5173/*",
+    "http://localhost:8788/*",
+    "http://127.0.0.1:8788/*",
+    ...inferenceProxyHosts,
     "http://127.0.0.1:8899/*",
     "https://api.devnet.solana.com/*",
     "https://api.mainnet-beta.solana.com/*",

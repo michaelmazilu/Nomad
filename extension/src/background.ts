@@ -18,11 +18,20 @@ import {
 } from "./ownerSigner";
 import { TabPhantomBridge, type ConnectorMessage } from "./phantom";
 import { NotConnectedError, RpcError } from "./errors";
-import { CONNECTOR_URL } from "./config";
+import { CONNECTOR_URL, INFERENCE_PROXY_URL } from "./config";
+import { extractChatGptConversation } from "./chatgptExtractor";
+import {
+  isSupportedChatGptUrl,
+  normalizeTabContext,
+  parseInferenceJson,
+  type ExtractedTabContext,
+  type NormalizedTabContext,
+} from "./inference";
 import type {
   AgentInfo,
   AirdropResult,
   AttemptResult,
+  InferenceResult,
   Msg,
   OwnerInfo,
   OwnerMode,
@@ -127,6 +136,84 @@ async function readPassport(
   if (!info) return null;
   const p = decodePassport(Uint8Array.from(info.data));
   return { scopes: p.permissions, label: p.label };
+}
+
+async function activeChatGptContext(): Promise<NormalizedTabContext> {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (!tab?.id || !tab.url) {
+    throw new Error("Open a ChatGPT tab before inferring permissions.");
+  }
+  if (!isSupportedChatGptUrl(tab.url)) {
+    throw new Error("Inference currently supports chatgpt.com tabs only.");
+  }
+
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: extractChatGptConversation,
+  });
+  const extracted = injection?.result as ExtractedTabContext | undefined;
+  if (!extracted) {
+    throw new Error("Could not read the active ChatGPT tab.");
+  }
+  return normalizeTabContext({
+    url: tab.url,
+    title: tab.title ?? extracted.title,
+    text: extracted.text,
+  });
+}
+
+async function inferPermissionsFromContext(
+  context: NormalizedTabContext,
+): Promise<InferenceResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(INFERENCE_PROXY_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        schema: "nomad.permission_inference.v1",
+        instructions:
+          "Return strict JSON only with agentName, label, scopes, and optional testAction. Scopes must be lowercase Nomad permission strings.",
+        context: {
+          url: context.url,
+          title: context.title,
+          text: context.text,
+          truncated: context.truncated,
+        },
+      }),
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(
+        `inference proxy failed (${response.status}): ${body || response.statusText}`,
+      );
+    }
+    const fields = parseInferenceJson(body);
+    const warnings = [...fields.warnings];
+    if (context.truncated) {
+      warnings.push("Conversation text was truncated before inference.");
+    }
+    return {
+      ...fields,
+      warnings,
+      source: {
+        url: context.url,
+        ...(context.title ? { title: context.title } : {}),
+      },
+    };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("inference proxy timed out");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function handle(msg: Msg): Promise<unknown> {
@@ -248,6 +335,10 @@ async function handle(msg: Msg): Promise<unknown> {
         scopes: result.passport?.permissions ?? null,
         signed,
       } satisfies AttemptResult;
+    }
+    case "INFER_PERMISSIONS_FROM_ACTIVE_TAB": {
+      const context = await activeChatGptContext();
+      return await inferPermissionsFromContext(context);
     }
   }
 }

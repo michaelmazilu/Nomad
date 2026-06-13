@@ -23,6 +23,7 @@ const REST_RE = /^[a-z0-9._:/-]+$/;
 
 export interface ScopeOptions {
   knownNamespaces?: Iterable<string>;
+  namespaceMode?: "known" | "dynamic";
   maxScopeLen?: number;
 }
 
@@ -61,6 +62,7 @@ export function isWildcardScope(scope: string): boolean {
  * is the ONLY wildcard form. Total and predictable — no regex/glob from callers.
  */
 export function validateScope(scope: string, opts: ScopeOptions = {}): boolean {
+  const namespaceMode = opts.namespaceMode ?? "known";
   const allow = new Set<string>(
     opts.knownNamespaces ?? DEFAULT_KNOWN_NAMESPACES,
   );
@@ -74,7 +76,8 @@ export function validateScope(scope: string, opts: ScopeOptions = {}): boolean {
     if (body.length === 0 || body.includes("*")) return false;
     const sep = firstSepIndex(body);
     const ns = sep === -1 ? body : body.slice(0, sep);
-    if (!NAMESPACE_RE.test(ns) || !allow.has(ns)) return false;
+    if (!NAMESPACE_RE.test(ns)) return false;
+    if (namespaceMode === "known" && !allow.has(ns)) return false;
     if (sep !== -1) {
       const rest = body.slice(sep + 1);
       if (rest.length === 0 || !REST_RE.test(rest)) return false;
@@ -87,7 +90,8 @@ export function validateScope(scope: string, opts: ScopeOptions = {}): boolean {
   if (sep === -1) return false; // a concrete scope must have a separator
   const ns = scope.slice(0, sep);
   const rest = scope.slice(sep + 1);
-  if (!NAMESPACE_RE.test(ns) || !allow.has(ns)) return false;
+  if (!NAMESPACE_RE.test(ns)) return false;
+  if (namespaceMode === "known" && !allow.has(ns)) return false;
   if (rest.length === 0 || !REST_RE.test(rest)) return false;
   return true;
 }

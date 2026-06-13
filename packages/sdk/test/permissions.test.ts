@@ -50,6 +50,27 @@ describe("validateScope", () => {
     ).toBe(false);
   });
 
+  it("accepts arbitrary namespaces in dynamic mode", () => {
+    expect(
+      validateScope("github.repo.read", { namespaceMode: "dynamic" }),
+    ).toBe(true);
+    expect(
+      validateScope("slack.message.send", { namespaceMode: "dynamic" }),
+    ).toBe(true);
+    expect(
+      validateScope("wallet:solana-devnet", { namespaceMode: "dynamic" }),
+    ).toBe(true);
+  });
+
+  it("keeps grammar strict in dynamic mode", () => {
+    const opts = { namespaceMode: "dynamic" } as const;
+    expect(validateScope("Github.repo.read", opts)).toBe(false);
+    expect(validateScope("github", opts)).toBe(false);
+    expect(validateScope("github.", opts)).toBe(false);
+    expect(validateScope("github.repo.*.read", opts)).toBe(false);
+    expect(validateScope("github.repo*", opts)).toBe(false);
+  });
+
   it("isWildcardScope detects trailing .*", () => {
     expect(isWildcardScope("calendar.*")).toBe(true);
     expect(isWildcardScope("calendar.read")).toBe(false);
@@ -77,6 +98,13 @@ describe("validatePermissions", () => {
     const r = validatePermissions(["calendar.read", "BAD"]);
     expect(r.ok).toBe(false);
     expect(r.errors.some((e) => e.includes("invalid scope: BAD"))).toBe(true);
+  });
+  it("accepts dynamic namespaces when requested", () => {
+    const r = validatePermissions(["github.repo.read", "slack.message.send"], {
+      namespaceMode: "dynamic",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.errors).toEqual([]);
   });
 });
 

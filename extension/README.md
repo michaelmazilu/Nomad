@@ -16,6 +16,10 @@ npm run build -w @agent-passport/extension   # → extension/dist
 Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → select
 `extension/dist`. `npm run dev` runs the CRXJS dev server with HMR.
 
+`Infer from ChatGPT` posts extracted, truncated tab context to
+`VITE_NOMAD_INFERENCE_PROXY_URL` (default `http://localhost:8788/infer`). Run a
+backend proxy there; do not bundle LLM API keys into the extension.
+
 ## Two keys, both local, both in the service worker
 
 | Key           | Role      | Signs                                             |
@@ -39,7 +43,8 @@ sign a write.
 2. **Create / load agent key** → shows the agent public key.
 3. **Create / load owner key** → shows the owner public key + balance.
 4. **Airdrop** → funds the owner (localnet/devnet) so it can pay for writes.
-5. **Passport** — type a Label + scopes (one per line), click **Create**
+5. **Passport** — type a Label + scopes (one per line), or infer them from the
+   active ChatGPT tab, then click **Create**
    (owner-signed, on-chain). **Update** replaces the full scope set; **Revoke**
    closes the account. **Load from chain** pulls the current scopes back.
 6. **Attempt an action** — type an action, click **Attempt**. The agent signs it,

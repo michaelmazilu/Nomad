@@ -1,5 +1,6 @@
 import type { Cluster, SignedAction } from "@agent-passport/sdk";
 import type { VerifyStatus } from "@agent-passport/verifier";
+import type { InferenceRiskLevel } from "./inference";
 
 /**
  * Owner-wallet mode. `phantom` is the real path (keys stay in Phantom); `local`
@@ -32,7 +33,8 @@ export type Msg =
       scopes: string[];
     }
   | { type: "PASSPORT_REVOKE"; cluster: Cluster; mode: OwnerMode }
-  | { type: "ATTEMPT_ACTION"; cluster: Cluster; action: string };
+  | { type: "ATTEMPT_ACTION"; cluster: Cluster; action: string }
+  | { type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB" };
 
 export interface AgentInfo {
   agentPublicKey: string | null;
@@ -64,6 +66,18 @@ export interface AttemptResult {
   reason?: string;
   scopes: string[] | null;
   signed: SignedAction;
+}
+export interface InferenceResult {
+  agentName: string | null;
+  label: string;
+  scopes: string[];
+  testAction?: string;
+  riskLevel: InferenceRiskLevel;
+  warnings: string[];
+  source: {
+    url: string;
+    title?: string;
+  };
 }
 
 export type Response =

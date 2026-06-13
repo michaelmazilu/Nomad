@@ -15,3 +15,17 @@ export const DEMO_PHANTOM_LOGIN = {
   delayMs: 1_500,
   publicKey: "6pYmaXSLJALosnttUAaZ4C6tTZ6horFfGD3229FrtrhL",
 } as const;
+
+const env = (
+  import.meta as ImportMeta & {
+    env?: Record<string, string | undefined>;
+  }
+).env;
+
+/**
+ * Backend endpoint that turns extracted ChatGPT context into strict Nomad
+ * inference JSON. Production builds should point this at a controlled proxy;
+ * API keys must never be bundled into the extension.
+ */
+export const INFERENCE_PROXY_URL =
+  env?.VITE_NOMAD_INFERENCE_PROXY_URL ?? "http://localhost:8788/infer";

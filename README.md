@@ -169,10 +169,13 @@ CLUSTER=devnet RPC_URL=... PROGRAM_ID=... PORT=8787 npm start -w @agent-passport
 
 ## Permission scopes
 
-`<namespace><sep><rest>` — `namespace` from the allowlist (`calendar`, `mail`,
-`files`, `contacts`, `tasks`, `api`, `mcp`, `system`), `sep` is `.` or `:`,
-lowercase ASCII. The only wildcard is a single trailing `.*` (e.g. `calendar.*`),
-which grants any action with that `namespace.` prefix.
+`<namespace><sep><rest>` — `sep` is `.` or `:`, lowercase ASCII. The SDK default
+keeps a conservative namespace allowlist (`calendar`, `mail`, `files`,
+`contacts`, `tasks`, `api`, `mcp`, `system`), but the extension uses dynamic
+namespace validation for passport writes so inferred/manual scopes such as
+`github.repo.read` or `slack.message.send` can be written. The only wildcard is a
+single trailing `.*` (e.g. `calendar.*`), which grants any action with that
+`namespace.` prefix.
 
 Examples: `calendar.read`, `calendar.*`, `mail.send`, `api:example.com`,
 `mcp:my-server`. A bare namespace matches nothing.

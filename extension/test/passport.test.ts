@@ -75,6 +75,18 @@ describe("transaction construction", () => {
     );
   });
 
+  it("accepts dynamic permission namespaces before building instructions", async () => {
+    const owner = Keypair.generate().publicKey;
+    const agent = Keypair.generate().publicKey;
+    const ix = await client.updateIx(owner, agent, "dynamic", [
+      "github.repo.read",
+      "slack.message.send",
+    ]);
+    expect(
+      ix.keys.some((k) => k.pubkey.equals(client.passportPda(agent))),
+    ).toBe(true);
+  });
+
   it("assemble sets fee payer + recent blockhash", () => {
     const owner = Keypair.generate().publicKey;
     const bh = fakeBlockhash();
