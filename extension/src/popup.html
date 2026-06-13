@@ -44,15 +44,18 @@
       }
 
       html {
+        width: 420px;
+        min-width: 420px;
         min-height: 100%;
         background: #101417;
       }
 
       body {
-        width: 100vw;
+        width: 420px;
+        min-width: 420px;
         min-height: 100vh;
         max-height: 680px;
-        margin: 0 auto;
+        margin: 0;
         overflow-y: auto;
         background:
           linear-gradient(
@@ -81,8 +84,8 @@
       .shell {
         position: relative;
         isolation: isolate;
-        width: min(420px, 100vw);
-        margin: 0 auto;
+        width: 420px;
+        margin: 0;
         padding: 18px;
         min-height: max(680px, 100vh);
       }
