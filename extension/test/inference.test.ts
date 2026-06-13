@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  inferFromChatGptContext,
   isSupportedChatGptUrl,
   normalizeTabContext,
   parseInferenceJson,
@@ -77,5 +78,36 @@ describe("inference parsing", () => {
     expect(() => parseInferencePayload({ label: "Empty", scopes: [] })).toThrow(
       /at least one scope/,
     );
+  });
+});
+
+describe("local ChatGPT fallback inference", () => {
+  it("infers common tool scopes from ChatGPT context", () => {
+    const context = normalizeTabContext({
+      url: "https://chatgpt.com/c/abc",
+      title: "Repo and Slack agent - ChatGPT",
+      text: "user: Create a GitHub pull request summary and post it to Slack.",
+    });
+    const r = inferFromChatGptContext(
+      context,
+      "Inference proxy unavailable; used local ChatGPT inference.",
+    );
+    expect(r.label).toBe("Repo and Slack agent");
+    expect(r.scopes).toContain("github.repo.read");
+    expect(r.scopes).toContain("github.repo.write");
+    expect(r.scopes).toContain("slack.message.send");
+    expect(r.warnings[0]).toMatch(/proxy unavailable/);
+  });
+
+  it("falls back to a minimal ChatGPT scope when no tool is obvious", () => {
+    const context = normalizeTabContext({
+      url: "https://chatgpt.com/c/abc",
+      title: "ChatGPT",
+      text: "user: Help me think through my plan for today.",
+    });
+    const r = inferFromChatGptContext(context);
+    expect(r.label).toBe("Help me think through my plan for today.");
+    expect(r.scopes).toEqual(["chatgpt.conversation.read"]);
+    expect(r.testAction).toBe("chatgpt.conversation.read");
   });
 });

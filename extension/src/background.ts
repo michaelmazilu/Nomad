@@ -21,6 +21,7 @@ import { NotConnectedError, RpcError } from "./errors";
 import { CONNECTOR_URL, INFERENCE_PROXY_URL } from "./config";
 import { extractChatGptConversation } from "./chatgptExtractor";
 import {
+  inferFromChatGptContext,
   isSupportedChatGptUrl,
   normalizeTabContext,
   parseInferenceJson,
@@ -170,6 +171,23 @@ async function inferPermissionsFromContext(
 ): Promise<InferenceResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
+  const resultWithSource = (
+    fields: Omit<InferenceResult, "source">,
+  ): InferenceResult => {
+    const warnings = [...fields.warnings];
+    if (context.truncated) {
+      warnings.push("Conversation text was truncated before inference.");
+    }
+    return {
+      ...fields,
+      warnings,
+      source: {
+        url: context.url,
+        ...(context.title ? { title: context.title } : {}),
+      },
+    };
+  };
+
   try {
     const response = await fetch(INFERENCE_PROXY_URL, {
       method: "POST",
@@ -193,24 +211,13 @@ async function inferPermissionsFromContext(
         `inference proxy failed (${response.status}): ${body || response.statusText}`,
       );
     }
-    const fields = parseInferenceJson(body);
-    const warnings = [...fields.warnings];
-    if (context.truncated) {
-      warnings.push("Conversation text was truncated before inference.");
-    }
-    return {
-      ...fields,
-      warnings,
-      source: {
-        url: context.url,
-        ...(context.title ? { title: context.title } : {}),
-      },
-    };
+    return resultWithSource(parseInferenceJson(body));
   } catch (e) {
-    if (e instanceof DOMException && e.name === "AbortError") {
-      throw new Error("inference proxy timed out");
-    }
-    throw e;
+    const reason =
+      e instanceof DOMException && e.name === "AbortError"
+        ? "Inference proxy timed out; used local ChatGPT inference."
+        : "Inference proxy unavailable; used local ChatGPT inference.";
+    return resultWithSource(inferFromChatGptContext(context, reason));
   } finally {
     clearTimeout(timeout);
   }

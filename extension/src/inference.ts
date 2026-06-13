@@ -62,6 +62,14 @@ function requireLabel(value: string): string {
   return value;
 }
 
+function truncateLabel(value: string): string {
+  let out = value.trim().replace(/\s+/g, " ");
+  while (out.length > 0 && byteLen(out) > MAX_LABEL_LEN) {
+    out = out.slice(0, -1);
+  }
+  return out || "ChatGPT Agent";
+}
+
 function canonicalScopes(value: unknown): string[] {
   if (!Array.isArray(value)) throw new Error("scopes must be an array");
   const seen = new Set<string>();
@@ -187,6 +195,151 @@ export function parseInferencePayload(
     scopes,
     ...(testAction ? { testAction } : {}),
     ...risk,
+  };
+}
+
+function includesAny(text: string, terms: readonly string[]): boolean {
+  return terms.some((term) => text.includes(term));
+}
+
+function labelFromContext(context: NormalizedTabContext): string {
+  const title = context.title
+    .replace(/\s*[-|]\s*chatgpt\s*$/i, "")
+    .replace(/^chatgpt\s*[-|]\s*/i, "")
+    .trim();
+  if (title && title.toLowerCase() !== "chatgpt") {
+    return truncateLabel(title);
+  }
+
+  const firstUserLine = context.text
+    .split(/\b(?:user|you):/i)
+    .map((part) => part.trim())
+    .find((part) => part.length > 12);
+  return truncateLabel(firstUserLine ?? "ChatGPT Agent");
+}
+
+export function inferFromChatGptContext(
+  context: NormalizedTabContext,
+  reason = "Used local ChatGPT inference.",
+): InferredPermissionFields {
+  const text = `${context.title}\n${context.text}`.toLowerCase();
+  const scopes = new Set<string>();
+  const add = (scope: string): void => {
+    if (scopes.size < 32) scopes.add(scope);
+  };
+
+  if (
+    includesAny(text, [
+      "look up",
+      "search",
+      "google",
+      "browse",
+      "browser",
+      "web",
+      "internet",
+      "website",
+      "url",
+    ])
+  ) {
+    add("web.search");
+  }
+  if (
+    includesAny(text, [
+      "github",
+      "repo",
+      "pull request",
+      "issue",
+      "commit",
+      "branch",
+      "code review",
+    ])
+  ) {
+    add("github.repo.read");
+    if (
+      includesAny(text, [
+        "create",
+        "update",
+        "edit",
+        "write",
+        "merge",
+        "push",
+        "comment",
+      ])
+    ) {
+      add("github.repo.write");
+    }
+  }
+  if (includesAny(text, ["slack", "channel", "message", "dm"])) {
+    add("slack.message.read");
+    if (includesAny(text, ["send", "post", "reply", "notify"])) {
+      add("slack.message.send");
+    }
+  }
+  if (includesAny(text, ["calendar", "schedule", "meeting", "event"])) {
+    add("calendar.read");
+    if (
+      includesAny(text, [
+        "create",
+        "schedule",
+        "book",
+        "reschedule",
+        "cancel",
+      ])
+    ) {
+      add("calendar.events.write");
+    }
+  }
+  if (includesAny(text, ["email", "mail", "inbox"])) {
+    add("mail.read");
+    if (includesAny(text, ["send", "reply", "draft", "forward"])) {
+      add("mail.send");
+    }
+  }
+  if (
+    includesAny(text, [
+      "file",
+      "document",
+      "docx",
+      "pdf",
+      "spreadsheet",
+      "csv",
+      "drive",
+    ])
+  ) {
+    add("files.read");
+    if (includesAny(text, ["create", "edit", "write", "update", "export"])) {
+      add("files.write");
+    }
+  }
+  if (
+    includesAny(text, [
+      "wallet",
+      "phantom",
+      "solana",
+      "payment",
+      "transfer",
+      "pay ",
+    ])
+  ) {
+    add("wallet.read");
+    if (includesAny(text, ["transfer", "payment", "pay ", "send sol"])) {
+      add("wallet.transfer");
+    }
+  }
+
+  if (scopes.size === 0) {
+    add("chatgpt.conversation.read");
+  }
+
+  const inferred = parseInferencePayload({
+    agentName: labelFromContext(context),
+    label: labelFromContext(context),
+    scopes: Array.from(scopes),
+    testAction: Array.from(scopes).find((scope) => !isWildcardScope(scope)),
+  });
+  return {
+    ...inferred,
+    warnings: [reason, ...inferred.warnings],
   };
 }
 

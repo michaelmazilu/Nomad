@@ -713,14 +713,34 @@
       .sync-panel {
         width: min(300px, 100%);
         margin: 0 auto;
+        overflow: visible;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      .sync-panel::before,
+      .sync-panel::after {
+        display: none;
+      }
+
+      .sync-panel:hover {
+        border-color: transparent;
+        box-shadow: none;
       }
 
       .sync-panel .panel-body {
-        padding: 12px;
+        padding: 0;
       }
 
       .sync-panel .panel-head {
         display: none;
+      }
+
+      .sync-panel .actions {
+        margin-top: 0;
       }
 
       .readout {
