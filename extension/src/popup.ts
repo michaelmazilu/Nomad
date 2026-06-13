@@ -19,8 +19,11 @@ const hasExtensionRuntime = (): boolean =>
   typeof chrome.runtime?.sendMessage === "function";
 
 function log(message: string): void {
-  const pre = el("log");
-  pre.textContent = `${new Date().toISOString()}  ${message}\n${pre.textContent ?? ""}`;
+  if (message.startsWith("error:")) {
+    console.error(`[Nomad] ${message}`);
+    return;
+  }
+  console.info(`[Nomad] ${message}`);
 }
 
 /** Send a message to the background worker; throws on a structured error. */
@@ -44,6 +47,7 @@ let currentOwner: OwnerInfo = {
   ownerPublicKey: null,
   balanceSol: 0,
 };
+let devWalletSkipped = false;
 
 const scopes = (): string[] =>
   el<HTMLTextAreaElement>("permissions")
@@ -91,16 +95,20 @@ function ensureValidScopes(list: string[]): void {
 
 function renderStage(): void {
   const walletConnected =
-    currentOwner.kind === "phantom" && Boolean(currentOwner.ownerPublicKey);
+    devWalletSkipped ||
+    (currentOwner.kind === "phantom" && Boolean(currentOwner.ownerPublicKey));
   const agentSynced = Boolean(currentAgent.agentPublicKey);
   el("walletGate").hidden = walletConnected;
+  el("postWallet").hidden = !walletConnected;
   el("agentGate").hidden = !walletConnected || agentSynced;
-  el("workspace").hidden = !walletConnected || !agentSynced;
+  el("workspace").hidden = !walletConnected;
 }
 
 function applyAgentInfo(a: AgentInfo): void {
   currentAgent = a;
-  el("agentPubkey").textContent = a.agentPublicKey ?? "none";
+  const agentPublicKey = a.agentPublicKey ?? "none";
+  el("agentPubkey").textContent = agentPublicKey;
+  el("workspaceAgentPubkey").textContent = agentPublicKey;
   renderStage();
 }
 
@@ -146,6 +154,14 @@ el("ensureAgent").addEventListener("click", () =>
   }),
 );
 
+el("resyncAgent").addEventListener("click", () =>
+  withErrors(async () => {
+    const { agentPublicKey } = await send<AgentInfo>({ type: "AGENT_ENSURE" });
+    applyAgentInfo({ agentPublicKey });
+    log(`agent ready: ${agentPublicKey}`);
+  }),
+);
+
 el("connectOwner").addEventListener("click", () =>
   withErrors(async () => {
     log("opening Phantom connector tab — approve the connection there…");
@@ -157,6 +173,19 @@ el("connectOwner").addEventListener("click", () =>
     log(`Phantom connected: ${o.ownerPublicKey}`);
   }),
 );
+
+el("skipWallet").addEventListener("click", () => {
+  devWalletSkipped = true;
+  currentOwner = {
+    kind: "phantom",
+    ownerPublicKey: "skipped for dev",
+    balanceSol: 0,
+  };
+  el("ownerPubkey").textContent = currentOwner.ownerPublicKey;
+  el("ownerBalance").textContent = currentOwner.balanceSol.toFixed(4);
+  renderStage();
+  log("wallet connect skipped for dev");
+});
 
 el("airdrop").addEventListener("click", () =>
   withErrors(async () => {

@@ -184,6 +184,27 @@
         background: var(--red);
       }
 
+      .dev-skip {
+        display: block;
+        width: fit-content;
+        min-height: 0;
+        margin: 12px auto 0;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        color: var(--muted);
+        background: transparent;
+        font-size: 12px;
+        font-weight: 500;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .dev-skip:hover {
+        color: var(--strong);
+        background: transparent;
+      }
+
       .wallet-gate {
         padding: 0;
       }
@@ -355,6 +376,10 @@
         font-family: var(--mono);
         font-size: 11px;
       }
+
+      .activity:empty {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -365,9 +390,6 @@
 
       <select id="ownerMode" hidden aria-hidden="true">
         <option value="phantom" selected>Phantom</option>
-      </select>
-      <select id="cluster" hidden aria-hidden="true">
-        <option value="localnet" selected>localnet</option>
       </select>
 
       <section id="walletGate" class="wallet-gate">
@@ -395,91 +417,136 @@
           </span>
           <span class="phantom-action">Connect</span>
         </button>
+        <button id="skipWallet" class="dev-skip">Skip for dev</button>
         <p id="ownerWarn"></p>
         <p id="ownerHint" class="hint"></p>
       </section>
 
-      <section id="agentGate" class="panel" hidden>
-        <div class="panel-body">
-          <div class="panel-head">
-            <h2>Sync agents</h2>
-            <span class="tag">next step</span>
+      <div id="postWallet" class="grid" hidden>
+        <section class="panel">
+          <div class="panel-body">
+            <div class="panel-head">
+              <h2>Owner</h2>
+              <span class="tag">Phantom</span>
+            </div>
+            <div class="readout">
+              <span class="eyebrow">Wallet</span>
+              <code id="ownerPubkey">none</code>
+            </div>
+            <div class="balance">
+              <span class="eyebrow">Balance</span>
+              <span><code id="ownerBalance">0.0000</code> SOL</span>
+            </div>
           </div>
-          <div class="readout">
-            <span class="eyebrow">Wallet</span>
-            <code id="ownerPubkey">none</code>
+        </section>
+
+        <section id="agentGate" class="panel">
+          <div class="panel-body">
+            <div class="panel-head">
+              <h2>Sync agents</h2>
+              <span class="tag">next step</span>
+            </div>
+            <div class="readout">
+              <span class="eyebrow">Agent public key</span>
+              <code id="agentPubkey">none</code>
+            </div>
+            <div class="actions">
+              <button id="ensureAgent">Sync agents</button>
+            </div>
           </div>
-          <div class="balance">
-            <span class="eyebrow">Balance</span>
-            <span><code id="ownerBalance">0.0000</code> SOL</span>
-          </div>
-          <div class="readout">
-            <span class="eyebrow">Agent public key</span>
-            <code id="agentPubkey">none</code>
-          </div>
-          <div class="actions">
-            <button id="ensureAgent">Sync agents</button>
-          </div>
+        </section>
+
+        <div id="workspace" class="grid" hidden>
+          <section class="panel">
+            <div class="panel-body">
+              <div class="panel-head">
+                <h2>Network</h2>
+                <span class="tag">settings</span>
+              </div>
+              <div class="field">
+                <label for="cluster">Cluster</label>
+                <select id="cluster">
+                  <option value="localnet" selected>localnet</option>
+                  <option value="devnet">devnet</option>
+                  <option value="mainnet-beta">mainnet-beta</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-body">
+              <div class="panel-head">
+                <h2>Agent</h2>
+                <span class="tag">identity</span>
+              </div>
+              <div class="readout">
+                <span class="eyebrow">Agent public key</span>
+                <code id="workspaceAgentPubkey">none</code>
+              </div>
+              <div class="actions">
+                <button id="resyncAgent" class="secondary">Sync agents</button>
+                <button id="airdrop" class="secondary">Airdrop</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-body">
+              <div class="panel-head">
+                <h2>Passport</h2>
+                <span class="tag">permissions</span>
+              </div>
+              <div class="field">
+                <label for="label">Label</label>
+                <input
+                  id="label"
+                  type="text"
+                  maxlength="64"
+                  placeholder="My Agent"
+                />
+              </div>
+              <div class="field">
+                <label for="permissions">Scopes</label>
+                <textarea
+                  id="permissions"
+                  rows="4"
+                  placeholder="calendar.read&#10;calendar.*"
+                ></textarea>
+              </div>
+              <div class="actions">
+                <button id="createPassport">Create</button>
+                <button id="updatePassport" class="secondary">Update</button>
+                <button id="revokePassport" class="danger">Revoke</button>
+                <button id="loadPassport" class="secondary">
+                  Load from chain
+                </button>
+              </div>
+              <div id="txStatus" class="status"></div>
+              <div class="readout scope-readout">
+                <span class="eyebrow">On-chain scopes</span>
+                <code id="onchainScopes">none</code>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-body">
+              <div class="panel-head">
+                <h2>Verify</h2>
+                <span class="tag">signed action</span>
+              </div>
+              <div class="field">
+                <label for="action">Action</label>
+                <input id="action" type="text" placeholder="calendar.read" />
+              </div>
+              <div class="actions">
+                <button id="attemptAction">Attempt</button>
+              </div>
+              <div id="verdict" class="verdict"></div>
+            </div>
+          </section>
         </div>
-      </section>
-
-      <div id="workspace" class="grid" hidden>
-        <section class="panel">
-          <div class="panel-body">
-            <div class="panel-head">
-              <h2>Passport</h2>
-              <span class="tag">permissions</span>
-            </div>
-            <div class="field">
-              <label for="label">Label</label>
-              <input
-                id="label"
-                type="text"
-                maxlength="64"
-                placeholder="My Agent"
-              />
-            </div>
-            <div class="field">
-              <label for="permissions">Scopes</label>
-              <textarea
-                id="permissions"
-                rows="4"
-                placeholder="calendar.read&#10;calendar.*"
-              ></textarea>
-            </div>
-            <div class="actions">
-              <button id="createPassport">Create</button>
-              <button id="updatePassport" class="secondary">Update</button>
-              <button id="revokePassport" class="danger">Revoke</button>
-              <button id="loadPassport" class="secondary">
-                Load from chain
-              </button>
-              <button id="airdrop" class="secondary">Airdrop</button>
-            </div>
-            <div id="txStatus" class="status"></div>
-            <div class="readout scope-readout">
-              <span class="eyebrow">On-chain scopes</span>
-              <code id="onchainScopes">none</code>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-body">
-            <div class="panel-head">
-              <h2>Verify</h2>
-              <span class="tag">signed action</span>
-            </div>
-            <div class="field">
-              <label for="action">Action</label>
-              <input id="action" type="text" placeholder="calendar.read" />
-            </div>
-            <div class="actions">
-              <button id="attemptAction">Attempt</button>
-            </div>
-            <div id="verdict" class="verdict"></div>
-          </div>
-        </section>
       </div>
 
       <pre id="log" class="activity"></pre>
