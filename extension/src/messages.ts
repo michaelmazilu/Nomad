@@ -6,6 +6,7 @@ import type { VerifyStatus } from "@agent-passport/verifier";
  * is an explicitly dev-only in-extension keypair for localnet / CI.
  */
 export type OwnerMode = "phantom" | "local";
+export type WalletProviderKind = "embedded" | "injected";
 
 /** Requests the popup (or an external page) sends to the background worker. */
 export type Msg =
@@ -41,6 +42,8 @@ export interface OwnerInfo {
   kind: OwnerMode | null;
   ownerPublicKey: string | null;
   balanceSol: number;
+  /** Which Phantom path produced the owner wallet, when known. */
+  providerKind?: WalletProviderKind | null;
   /** Cluster Phantom reports it is on (when known); used to flag mismatches. */
   walletCluster?: Cluster | null;
 }

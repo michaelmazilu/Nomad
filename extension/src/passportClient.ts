@@ -160,7 +160,7 @@ export class PassportClient {
       authority,
       await this.latestBlockhash(),
     );
-    return this.submit(await owner.signTransaction(tx));
+    return owner.executeTransaction(tx, (signed) => this.submit(signed));
   }
 
   async update(
@@ -176,7 +176,7 @@ export class PassportClient {
       authority,
       await this.latestBlockhash(),
     );
-    return this.submit(await owner.signTransaction(tx));
+    return owner.executeTransaction(tx, (signed) => this.submit(signed));
   }
 
   async revoke(owner: OwnerSigner, agent: PublicKey): Promise<string> {
@@ -187,7 +187,7 @@ export class PassportClient {
       authority,
       await this.latestBlockhash(),
     );
-    return this.submit(await owner.signTransaction(tx));
+    return owner.executeTransaction(tx, (signed) => this.submit(signed));
   }
 }
 

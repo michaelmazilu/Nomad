@@ -1,4 +1,5 @@
 import type { Cluster } from "@agent-passport/sdk";
+import type { WalletProviderKind } from "./messages";
 import {
   MissingWalletError,
   NetworkMismatchError,
@@ -18,11 +19,18 @@ import {
  */
 export interface PhantomBridge {
   /** Connect Phantom and return its public key (+ the cluster it reports, if any). */
-  connect(
-    cluster: Cluster,
-  ): Promise<{ publicKey: string; walletCluster: Cluster | null }>;
+  connect(cluster: Cluster): Promise<{
+    publicKey: string;
+    walletCluster: Cluster | null;
+    providerKind: WalletProviderKind | null;
+  }>;
   /** Ask Phantom to sign (not send) a serialized transaction; returns signed base64. */
   signTransaction(unsignedTxBase64: string, cluster: Cluster): Promise<string>;
+  /** Ask Phantom Connect embedded wallet to sign and submit; returns a transaction signature. */
+  signAndSendTransaction(
+    unsignedTxBase64: string,
+    cluster: Cluster,
+  ): Promise<string>;
 }
 
 /** Throw if the wallet's reported cluster disagrees with what we built for. */
@@ -35,7 +43,7 @@ export function assertNetworkMatch(
   }
 }
 
-type ConnectorAction = "connect" | "sign";
+type ConnectorAction = "connect" | "sign" | "sign_and_send";
 
 interface PendingRequest {
   action: ConnectorAction;
@@ -49,7 +57,9 @@ interface PendingRequest {
 interface ConnectorResult {
   publicKey?: string;
   walletCluster?: Cluster | null;
+  providerKind?: WalletProviderKind | null;
   signedTxBase64?: string;
+  txSig?: string;
 }
 
 /** Messages the connector page sends back to the extension (externally_connectable). */
@@ -61,7 +71,9 @@ export type ConnectorMessage =
       ok: true;
       publicKey?: string;
       walletCluster?: Cluster | null;
+      providerKind?: WalletProviderKind | null;
       signedTxBase64?: string;
+      txSig?: string;
     }
   | {
       type: "CONNECTOR_PUSH";
@@ -104,16 +116,22 @@ export class TabPhantomBridge implements PhantomBridge {
     private readonly timeoutMs = 180_000,
   ) {}
 
-  connect(
-    cluster: Cluster,
-  ): Promise<{ publicKey: string; walletCluster: Cluster | null }> {
+  connect(cluster: Cluster): Promise<{
+    publicKey: string;
+    walletCluster: Cluster | null;
+    providerKind: WalletProviderKind | null;
+  }> {
     return this.run("connect", cluster).then((r) => {
       if (!r.publicKey)
         throw new OwnerError(
           "wallet_rejected",
           "wallet returned no public key",
         );
-      return { publicKey: r.publicKey, walletCluster: r.walletCluster ?? null };
+      return {
+        publicKey: r.publicKey,
+        walletCluster: r.walletCluster ?? null,
+        providerKind: r.providerKind ?? null,
+      };
     });
   }
 
@@ -122,6 +140,20 @@ export class TabPhantomBridge implements PhantomBridge {
       if (!r.signedTxBase64)
         throw new OwnerError("wallet_rejected", "wallet returned no signature");
       return r.signedTxBase64;
+    });
+  }
+
+  signAndSendTransaction(
+    unsignedTxBase64: string,
+    cluster: Cluster,
+  ): Promise<string> {
+    return this.run("sign_and_send", cluster, unsignedTxBase64).then((r) => {
+      if (!r.txSig)
+        throw new OwnerError(
+          "wallet_rejected",
+          "wallet returned no transaction signature",
+        );
+      return r.txSig;
     });
   }
 
@@ -181,7 +213,9 @@ export class TabPhantomBridge implements PhantomBridge {
         this.settle(msg.req, {
           publicKey: msg.publicKey,
           walletCluster: msg.walletCluster ?? null,
+          providerKind: msg.providerKind ?? null,
           signedTxBase64: msg.signedTxBase64,
+          txSig: msg.txSig,
         });
       } else {
         this.settle(msg.req, undefined, toError(msg.code, msg.error));

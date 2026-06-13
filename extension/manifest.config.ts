@@ -16,6 +16,7 @@ export default defineManifest({
   },
   permissions: ["storage"],
   host_permissions: [
+    "http://localhost:5173/*",
     "http://127.0.0.1:8899/*",
     "https://api.devnet.solana.com/*",
     "https://api.mainnet-beta.solana.com/*",

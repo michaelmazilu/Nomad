@@ -131,10 +131,20 @@ Verify (optional): `npm test --workspaces --if-present` and `anchor test`.
    npm run dev -w @agent-passport/connector   # serves the connector on :5173
    ```
 
+   If you also want the Vite popup preview, run the extension dev server on its
+   separate port:
+
+   ```bash
+   npm run dev -w @agent-passport/extension    # serves popup preview on :5174
+   ```
+
 3. **Use the popup.** Pick a cluster, then:
    - **Create / load agent key** — the identity that signs action requests.
    - **Owner = Phantom** → **Connect Phantom**: a connector tab opens; approve the
-     connection. The popup shows the connected **address, balance, and cluster**.
+     connection if Phantom has not already trusted Nomad. The connector first
+     tries a trusted reconnect, then prompts only when needed, and closes itself
+     after success. The popup shows the connected **address, balance, and
+     cluster**.
    - **Create / Update / Revoke** the passport: permissions are validated, then a
      connector tab opens for you to **approve & sign** in Phantom. The popup shows
      the **transaction status and signature** (or a useful error).

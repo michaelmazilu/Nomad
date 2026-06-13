@@ -28,6 +28,7 @@ import type {
   OwnerMode,
   PassportInfo,
   TxResult,
+  WalletProviderKind,
 } from "./messages";
 
 // Both keys live ONLY here, in the service worker, behind the KeyStore. The popup
@@ -45,6 +46,7 @@ const PHANTOM_KEY = "agentPassport.phantom";
 interface PhantomConnection {
   publicKey: string;
   walletCluster: Cluster | null;
+  providerKind?: WalletProviderKind | null;
 }
 
 let bridgeSingleton: TabPhantomBridge | null = null;
@@ -105,6 +107,7 @@ async function ownerSigner(
     new PublicKey(conn.publicKey),
     cluster,
     conn.walletCluster,
+    conn.providerKind ?? "injected",
   );
 }
 
@@ -134,13 +137,16 @@ async function handle(msg: Msg): Promise<unknown> {
       return { agentPublicKey: await agent.getPublicKey() } satisfies AgentInfo;
 
     case "PHANTOM_CONNECT": {
-      const { publicKey, walletCluster } = await bridge().connect(msg.cluster);
-      await savePhantom({ publicKey, walletCluster });
+      const { publicKey, walletCluster, providerKind } = await bridge().connect(
+        msg.cluster,
+      );
+      await savePhantom({ publicKey, walletCluster, providerKind });
       const balanceSol = await getBalance(msg.cluster, publicKey);
       return {
         kind: "phantom",
         ownerPublicKey: publicKey,
         balanceSol,
+        providerKind,
         walletCluster,
       } satisfies OwnerInfo;
     }
@@ -157,14 +163,14 @@ async function handle(msg: Msg): Promise<unknown> {
       const balanceSol = ownerPublicKey
         ? await getBalance(msg.cluster, ownerPublicKey)
         : 0;
-      const walletCluster =
-        msg.mode === "phantom"
-          ? ((await loadPhantom())?.walletCluster ?? null)
-          : null;
+      const phantom = msg.mode === "phantom" ? await loadPhantom() : null;
+      const walletCluster = phantom?.walletCluster ?? null;
+      const providerKind = phantom?.providerKind ?? null;
       return {
         kind: ownerPublicKey ? msg.mode : null,
         ownerPublicKey,
         balanceSol,
+        providerKind,
         walletCluster,
       } satisfies OwnerInfo;
     }
@@ -258,15 +264,46 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true; // async response
 });
 
+function shouldCloseConnectorTab(msg: unknown): boolean {
+  const m = msg as Partial<ConnectorMessage> | null;
+  return m?.type === "CONNECTOR_PUSH" && "ok" in m && m.ok === true;
+}
+
+function connectorMatchPattern(): string {
+  return `${new URL(CONNECTOR_URL).origin}/*`;
+}
+
+async function closeConnectorTab(
+  msg: unknown,
+  sender: chrome.runtime.MessageSender,
+): Promise<void> {
+  if (!shouldCloseConnectorTab(msg)) return;
+  if (sender.tab?.id !== undefined) {
+    await chrome.tabs.remove(sender.tab.id);
+    return;
+  }
+  const req = (msg as Partial<ConnectorMessage> | null)?.req;
+  if (!req) return;
+  const reqParam = `req=${encodeURIComponent(req)}`;
+  const tabs = await chrome.tabs.query({ url: connectorMatchPattern() });
+  const tabIds = tabs
+    .filter((tab) => tab.id !== undefined && tab.url?.includes(reqParam))
+    .map((tab) => tab.id!);
+  if (tabIds.length > 0) await chrome.tabs.remove(tabIds);
+}
+
 // External messages come from (a) the Phantom connector page relaying connect /
 // sign results, and (b) agent web pages doing read-only action attempts. Writes
 // and key export are never allowed from outside.
-chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessageExternal.addListener((msg, sender, sendResponse) => {
   const connectorReply = bridge().handleConnectorMessage(
     msg as ConnectorMessage,
   );
   if (connectorReply.handled) {
     sendResponse(connectorReply.response);
+    setTimeout(() => {
+      void closeConnectorTab(msg, sender);
+    }, 650);
     return false;
   }
   const m = msg as Msg;

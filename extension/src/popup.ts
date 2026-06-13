@@ -11,6 +11,18 @@ import type {
   TxResult,
 } from "./messages";
 
+interface PhantomProvider {
+  isPhantom?: boolean;
+  connect: () => Promise<{ publicKey: { toString(): string } }>;
+}
+
+declare global {
+  interface Window {
+    solana?: PhantomProvider;
+    phantom?: { solana?: PhantomProvider };
+  }
+}
+
 const el = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
 
@@ -24,6 +36,34 @@ function log(message: string): void {
     return;
   }
   console.info(`[Nomad] ${message}`);
+}
+
+let phantomActionTimer: ReturnType<typeof setTimeout> | null = null;
+
+function setPhantomAction(text: string, resetMs?: number): void {
+  if (phantomActionTimer) {
+    clearTimeout(phantomActionTimer);
+    phantomActionTimer = null;
+  }
+  const button = el<HTMLButtonElement>("connectOwner");
+  button.dataset.state = text.toLowerCase();
+  button.setAttribute(
+    "aria-label",
+    text === "Connect" ? "Connect Phantom wallet" : `Phantom wallet ${text}`,
+  );
+  if (resetMs !== undefined) {
+    phantomActionTimer = setTimeout(() => {
+      button.dataset.state = "connect";
+      button.setAttribute("aria-label", "Connect Phantom wallet");
+      phantomActionTimer = null;
+    }, resetMs);
+  }
+}
+
+function getPhantomProvider(): PhantomProvider | undefined {
+  if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
+  if (window.solana?.isPhantom) return window.solana;
+  return undefined;
 }
 
 /** Send a message to the background worker; throws on a structured error. */
@@ -129,6 +169,39 @@ function syncOwnerControls(): void {
   el("ownerHint").textContent = "";
 }
 
+function syncAmbientPointer(event: PointerEvent): void {
+  const x = Math.round((event.clientX / window.innerWidth) * 100);
+  const y = Math.round((event.clientY / window.innerHeight) * 100);
+  const driftX = (event.clientX / window.innerWidth - 0.5) * 10;
+  const driftY = (event.clientY / window.innerHeight - 0.5) * 10;
+  document.body.style.setProperty("--bg-x", `${x}%`);
+  document.body.style.setProperty("--bg-y", `${y}%`);
+  document.body.style.setProperty("--drift-x", `${driftX.toFixed(2)}px`);
+  document.body.style.setProperty("--drift-y", `${driftY.toFixed(2)}px`);
+}
+
+function syncLiquidButtonPointer(event: PointerEvent): void {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const button = target.closest("button");
+  if (!button) return;
+  const rect = button.getBoundingClientRect();
+  const x = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+  const y = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+  button.style.setProperty("--button-x", `${x}%`);
+  button.style.setProperty("--button-y", `${y}%`);
+}
+
+function releaseLiquidButton(event: PointerEvent): void {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const button = target.closest("button");
+  if (!button || button.classList.contains("dev-skip")) return;
+  button.classList.remove("liquid-release");
+  void button.offsetWidth;
+  button.classList.add("liquid-release");
+}
+
 async function refresh(): Promise<void> {
   const a = await send<AgentInfo>({ type: "AGENT_GET" });
   applyAgentInfo(a);
@@ -162,15 +235,65 @@ el("resyncAgent").addEventListener("click", () =>
   }),
 );
 
+async function ensureAgentAfterWalletConnect(): Promise<void> {
+  const { agentPublicKey } = await send<AgentInfo>({ type: "AGENT_ENSURE" });
+  applyAgentInfo({ agentPublicKey });
+  log(`agent ready: ${agentPublicKey}`);
+}
+
 el("connectOwner").addEventListener("click", () =>
   withErrors(async () => {
-    log("opening Phantom connector tab — approve the connection there…");
-    const o = await send<OwnerInfo>({
-      type: "PHANTOM_CONNECT",
-      cluster: cluster(),
-    });
-    applyOwnerInfo(o);
-    log(`Phantom connected: ${o.ownerPublicKey}`);
+    const button = el<HTMLButtonElement>("connectOwner");
+    let keepAction = false;
+    button.disabled = true;
+    try {
+      if (!hasExtensionRuntime()) {
+        const provider = getPhantomProvider();
+        if (!provider) {
+          setPhantomAction("Unavailable", 2500);
+          keepAction = true;
+          log(
+            "error: Phantom is not injected in this browser preview. Load the unpacked Nomad extension in Chrome with Phantom installed, or use Skip for dev.",
+          );
+          return;
+        }
+        setPhantomAction("Approve");
+        log("preview mode: opening Phantom directly");
+        const { publicKey } = await provider.connect();
+        const o: OwnerInfo = {
+          kind: "phantom",
+          ownerPublicKey: publicKey.toString(),
+          balanceSol: 0,
+          walletCluster: null,
+        };
+        applyOwnerInfo(o);
+        setPhantomAction("Connected", 1500);
+        keepAction = true;
+        log(`Phantom connected in preview: ${o.ownerPublicKey}`);
+        return;
+      }
+
+      setPhantomAction("Opening");
+      log("opening Phantom connector tab — approve the connection there…");
+      const o = await send<OwnerInfo>({
+        type: "PHANTOM_CONNECT",
+        cluster: cluster(),
+      });
+      applyOwnerInfo(o);
+      try {
+        await ensureAgentAfterWalletConnect();
+      } catch (e) {
+        log(
+          `error: agent sync failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+      setPhantomAction("Connected", 1500);
+      keepAction = true;
+      log(`Phantom connected: ${o.ownerPublicKey}`);
+    } finally {
+      button.disabled = false;
+      if (!keepAction) setPhantomAction("Connect");
+    }
   }),
 );
 
@@ -279,6 +402,9 @@ el("attemptAction").addEventListener("click", () =>
   }),
 );
 
+window.addEventListener("pointermove", syncAmbientPointer);
+window.addEventListener("pointermove", syncLiquidButtonPointer);
+window.addEventListener("pointerup", releaseLiquidButton);
 syncOwnerControls();
 renderStage();
 if (hasExtensionRuntime()) {

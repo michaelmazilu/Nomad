@@ -138,6 +138,7 @@ describe("rejected signatures", () => {
     const bridge: PhantomBridge = {
       connect: vi.fn(),
       signTransaction: vi.fn().mockRejectedValue(new WalletRejectedError()),
+      signAndSendTransaction: vi.fn(),
     };
     const signer = new PhantomOwnerSigner(
       bridge,
@@ -211,7 +212,11 @@ describe("network mismatch", () => {
 
   it("PhantomOwnerSigner refuses to sign when the wallet is on another cluster", async () => {
     const signTransaction = vi.fn();
-    const bridge: PhantomBridge = { connect: vi.fn(), signTransaction };
+    const bridge: PhantomBridge = {
+      connect: vi.fn(),
+      signTransaction,
+      signAndSendTransaction: vi.fn(),
+    };
     const wrongCluster: Cluster = "mainnet-beta";
     const signer = new PhantomOwnerSigner(
       bridge,
