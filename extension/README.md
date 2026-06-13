@@ -1,4 +1,4 @@
-# Agent Passport — Browser Extension (MV3)
+# Nomad — Browser Extension (MV3)
 
 Self-contained control surface: create an agent identity, manage its on-chain
 permission passport, and test whether the agent is allowed to take an action —
@@ -18,15 +18,15 @@ Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → se
 
 ## Two keys, both local, both in the service worker
 
-| Key | Role | Signs |
-|---|---|---|
-| **Agent key** | identity | action requests only |
+| Key           | Role      | Signs                                             |
+| ------------- | --------- | ------------------------------------------------- |
+| **Agent key** | identity  | action requests only                              |
 | **Owner key** | authority | passport writes (create/update/revoke), pays fees |
 
 Both are generated with `Keypair.generate()` and stored as 64-byte secret keys
 behind the `KeyStore` interface, **only in the background service worker** — the
 popup is a thin UI that messages the worker, so raw keys never enter the popup
-DOM. `PlaintextKeyStore` (default) is honestly *not* encrypted; swap in
+DOM. `PlaintextKeyStore` (default) is honestly _not_ encrypted; swap in
 `EncryptedKeyStore` (AES-GCM + PBKDF2) for encryption at rest.
 
 The owner key replaces Phantom: it's the "dev owner wallet" model the brief
@@ -54,14 +54,14 @@ sign a write.
 
 With scopes `["calendar.*", "mail.send"]` created on the passport, **Attempt**:
 
-| Action | Verdict |
-|---|---|
-| `calendar.read` | OK (wildcard) |
-| `calendar.events.list` | OK (wildcard spans sub-segments) |
-| `mail.send` | OK (exact) |
-| `mail.read` | NOT_PERMITTED |
-| `files.read` | NOT_PERMITTED (different namespace) |
-| `calendar` | NOT_PERMITTED (bare namespace) |
+| Action                 | Verdict                             |
+| ---------------------- | ----------------------------------- |
+| `calendar.read`        | OK (wildcard)                       |
+| `calendar.events.list` | OK (wildcard spans sub-segments)    |
+| `mail.send`            | OK (exact)                          |
+| `mail.read`            | NOT_PERMITTED                       |
+| `files.read`           | NOT_PERMITTED (different namespace) |
+| `calendar`             | NOT_PERMITTED (bare namespace)      |
 
 Before any passport exists, Attempt returns `NO_PASSPORT`. After Revoke, it
 returns `NO_PASSPORT` again — revocation is real.

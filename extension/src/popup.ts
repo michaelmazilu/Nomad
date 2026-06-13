@@ -13,6 +13,10 @@ import type {
 const el = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
 
+const hasExtensionRuntime = (): boolean =>
+  typeof chrome !== "undefined" &&
+  typeof chrome.runtime?.sendMessage === "function";
+
 function log(message: string): void {
   const pre = el("log");
   pre.textContent = `${new Date().toISOString()}  ${message}\n${pre.textContent ?? ""}`;
@@ -20,12 +24,16 @@ function log(message: string): void {
 
 /** Send a message to the background worker; throws on a structured error. */
 async function send<T>(msg: Msg): Promise<T> {
+  if (!hasExtensionRuntime()) {
+    throw new Error("Nomad extension runtime unavailable");
+  }
   const res: Response = await chrome.runtime.sendMessage(msg);
   if (!res.ok) throw new Error(res.error);
   return res.data as T;
 }
 
-const cluster = (): Cluster => el<HTMLSelectElement>("cluster").value as Cluster;
+const cluster = (): Cluster =>
+  el<HTMLSelectElement>("cluster").value as Cluster;
 
 const scopes = (): string[] =>
   el<HTMLTextAreaElement>("permissions")
@@ -49,7 +57,9 @@ function showVerdict(result: AttemptResult): void {
       : result.status === "not_permitted" || result.status === "no_passport"
         ? "deny"
         : "warn";
-  const scopeNote = result.scopes ? ` — agent scopes: [${result.scopes.join(", ")}]` : "";
+  const scopeNote = result.scopes
+    ? ` — agent scopes: [${result.scopes.join(", ")}]`
+    : "";
   v.textContent = `${result.status.toUpperCase()}${result.reason ? ` — ${result.reason}` : ""}${scopeNote}`;
   v.className = `verdict ${klass}`;
   v.style.display = "block";
@@ -83,7 +93,10 @@ el("ensureOwner").addEventListener("click", () =>
 
 el("airdrop").addEventListener("click", () =>
   withErrors(async () => {
-    const r = await send<AirdropResult>({ type: "OWNER_AIRDROP", cluster: cluster() });
+    const r = await send<AirdropResult>({
+      type: "OWNER_AIRDROP",
+      cluster: cluster(),
+    });
     el("ownerBalance").textContent = r.balanceSol.toFixed(4);
     log(`airdrop ok, balance ${r.balanceSol} SOL`);
   }),
@@ -116,14 +129,20 @@ el("updatePassport").addEventListener("click", () =>
 
 el("revokePassport").addEventListener("click", () =>
   withErrors(async () => {
-    const r = await send<TxResult>({ type: "PASSPORT_REVOKE", cluster: cluster() });
+    const r = await send<TxResult>({
+      type: "PASSPORT_REVOKE",
+      cluster: cluster(),
+    });
     log(`passport revoked: ${r.txSig}`);
   }),
 );
 
 el("loadPassport").addEventListener("click", () =>
   withErrors(async () => {
-    const { passport } = await send<PassportInfo>({ type: "PASSPORT_READ", cluster: cluster() });
+    const { passport } = await send<PassportInfo>({
+      type: "PASSPORT_READ",
+      cluster: cluster(),
+    });
     if (!passport) {
       el("onchainScopes").textContent = "none (no passport on this cluster)";
       log("no passport found on chain for this agent");
@@ -131,7 +150,9 @@ el("loadPassport").addEventListener("click", () =>
     }
     el("onchainScopes").textContent = passport.scopes.join(", ") || "(empty)";
     el<HTMLTextAreaElement>("permissions").value = passport.scopes.join("\n");
-    log(`loaded ${passport.scopes.length} scope(s) from chain (label: ${passport.label})`);
+    log(
+      `loaded ${passport.scopes.length} scope(s) from chain (label: ${passport.label})`,
+    );
   }),
 );
 
@@ -148,4 +169,6 @@ el("attemptAction").addEventListener("click", () =>
   }),
 );
 
-void withErrors(refresh);
+if (hasExtensionRuntime()) {
+  void withErrors(refresh);
+}
