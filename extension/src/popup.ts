@@ -1,4 +1,9 @@
-import type { AgentIntentResult, Msg, Response } from "./messages";
+import type {
+  AgentIntentResult,
+  AgentStatusUpdate,
+  Msg,
+  Response,
+} from "./messages";
 
 const el = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
@@ -22,63 +27,61 @@ async function send<T>(msg: Msg): Promise<T> {
   return res.data as T;
 }
 
-// While the shadow wallet is on, poll the active ChatGPT tab for new messages
-// and ask Haiku 4.5 whether the user wants to create an agent.
+// The side panel is always on while it is open. Poll the active ChatGPT tab for
+// new messages and report each stage instead of exposing a mode toggle.
 const POLL_INTERVAL_MS = 4000;
-let monitoring = false;
-let pollTimer: ReturnType<typeof setInterval> | null = null;
+let polling = false;
+let passportReady = false;
 
-function setToggle(on: boolean): void {
-  monitoring = on;
-  const button = el<HTMLButtonElement>("toggleMonitor");
-  button.dataset.state = on ? "on" : "off";
-  button.setAttribute("aria-pressed", String(on));
-  button.setAttribute(
-    "aria-label",
-    on ? "Turn agent detection off" : "Turn agent detection on",
-  );
-  el("toggleLabel").textContent = on ? "On" : "Off";
+type StatusState = "working" | "active" | "success" | "error";
+
+function setStatus(
+  state: StatusState,
+  title: string,
+): void {
+  el("agentStatus").dataset.state = state;
+  el("statusTitle").textContent = title;
 }
 
-function showSuccess(show: boolean): void {
-  el("detectStatus").hidden = !show;
-}
+chrome.runtime.onMessage.addListener((message: AgentStatusUpdate) => {
+  if (message.type !== "AGENT_STATUS_UPDATE") return;
+  setStatus("working", message.title);
+});
 
 async function poll(): Promise<void> {
-  if (!monitoring) return;
+  if (polling) return;
+  polling = true;
   console.log("[Nomad] poll: firing");
   try {
     const result = await send<AgentIntentResult>({
       type: "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB",
     });
     console.log("[Nomad] poll: result =", result);
-    if (result?.changed && result.wantsAgent) showSuccess(true);
+    if (result.passportStatus === "detection_failed") {
+      setStatus("active", "Waiting for action prompt");
+    } else if (result.passportStatus === "failed") {
+      setStatus("error", "Passport creation failed");
+    } else if (
+      result.passportStatus === "created" ||
+      result.passportStatus === "existing"
+    ) {
+      passportReady = true;
+      setStatus("success", "Passport ready");
+    } else if (passportReady) {
+      setStatus("success", "Passport ready");
+    } else {
+      setStatus("active", "Waiting for action prompt");
+    }
   } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    setStatus("error", "Connection issue");
     console.warn(
-      `[Nomad] poll error: ${e instanceof Error ? e.message : String(e)}`,
+      `[Nomad] poll error: ${message}`,
     );
+  } finally {
+    polling = false;
   }
 }
 
-function startMonitoring(): void {
-  setToggle(true);
-  showSuccess(false);
-  void poll();
-  pollTimer = setInterval(() => void poll(), POLL_INTERVAL_MS);
-}
-
-function stopMonitoring(): void {
-  setToggle(false);
-  showSuccess(false);
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-}
-
-el("toggleMonitor").addEventListener("click", () => {
-  if (monitoring) stopMonitoring();
-  else startMonitoring();
-});
-
-setToggle(false);
+void poll();
+setInterval(() => void poll(), POLL_INTERVAL_MS);

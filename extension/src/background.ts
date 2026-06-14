@@ -52,6 +52,7 @@ function tlog(level: "log" | "warn" | "error", msg: string): void {
 import type {
   AgentInfo,
   AgentIntentResult,
+  AgentStatusUpdate,
   AirdropResult,
   AttemptResult,
   InferenceResult,
@@ -68,6 +69,16 @@ void chrome.sidePanel
   .catch((error) => {
     console.error("[Nomad] Could not configure side panel", error);
   });
+
+function updatePanelStatus(title: string): void {
+  const update: AgentStatusUpdate = {
+    type: "AGENT_STATUS_UPDATE",
+    title,
+  };
+  void chrome.runtime.sendMessage(update).catch(() => {
+    // The panel may have closed while background work was finishing.
+  });
+}
 
 // Both keys live ONLY here, in the service worker, behind the KeyStore. The side
 // panel is a thin UI that messages this worker — keys never enter its DOM. The
@@ -482,28 +493,52 @@ async function handle(msg: Msg): Promise<unknown> {
           changed: false,
           wantsAgent: false,
           text: text || null,
+          passportStatus: "not_requested",
         } satisfies AgentIntentResult;
       }
       tlog("log", `calling classifyAgentIntent: "${text.slice(0, 100)}"`);
+      updatePanelStatus(
+        "Analyzing action prompt",
+      );
       let wantsAgent = false;
       try {
         wantsAgent = await classifyAgentIntent(text);
         lastClassifiedText = text;
       } catch (e) {
-        tlog("error", `classifyAgentIntent failed: ${e instanceof Error ? e.message : String(e)}`);
-        return { changed: false, wantsAgent: false, text } satisfies AgentIntentResult;
+        const error = e instanceof Error ? e.message : String(e);
+        tlog("error", `classifyAgentIntent failed: ${error}`);
+        return {
+          changed: false,
+          wantsAgent: false,
+          text,
+          passportStatus: "detection_failed",
+          error,
+        } satisfies AgentIntentResult;
       }
       tlog("log", `classifyAgentIntent result: wantsAgent = ${wantsAgent}`);
+      let passportStatus: AgentIntentResult["passportStatus"] =
+        "not_requested";
+      let passportError: string | undefined;
       if (wantsAgent) {
         try {
+          updatePanelStatus(
+            "Checking passport",
+          );
           const existing = await readPassport("devnet");
           if (existing) {
             tlog("log", "passport already exists on-chain, skipping creation");
+            passportStatus = "existing";
           } else {
             tlog("log", "creating passport on devnet via sponsor...");
+            updatePanelStatus(
+              "Preparing agent key",
+            );
             const agentPk = await agent.getOrCreate();
             const owner = await ownerSigner("embedded", "devnet");
             const client = new PassportClient("devnet");
+            updatePanelStatus(
+              "Writing passport",
+            );
             const txSig = await client.initialize(
               owner,
               new PublicKey(agentPk),
@@ -511,12 +546,21 @@ async function handle(msg: Msg): Promise<unknown> {
               ["payments.charge", "commerce.checkout"],
             );
             tlog("log", `passport created: ${txSig}`);
+            passportStatus = "created";
           }
         } catch (e) {
-          tlog("error", `passport creation failed: ${e instanceof Error ? e.message : String(e)}`);
+          passportError = e instanceof Error ? e.message : String(e);
+          passportStatus = "failed";
+          tlog("error", `passport creation failed: ${passportError}`);
         }
       }
-      return { changed: true, wantsAgent, text } satisfies AgentIntentResult;
+      return {
+        changed: true,
+        wantsAgent,
+        text,
+        passportStatus,
+        ...(passportError ? { error: passportError } : {}),
+      } satisfies AgentIntentResult;
     }
   }
 }
