@@ -17,7 +17,7 @@ export class AgentKeyManager {
   constructor(private readonly store: KeyStore) {}
 
   hasKey(): Promise<boolean> {
-    return this.store.has();
+    return this.store.has(); 
   }
 
   /** Create an agent identity if none exists; returns the agent public key (Base58). */
