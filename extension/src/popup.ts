@@ -38,16 +38,14 @@ type StatusState = "working" | "active" | "success" | "error";
 function setStatus(
   state: StatusState,
   title: string,
-  detail: string,
 ): void {
   el("agentStatus").dataset.state = state;
   el("statusTitle").textContent = title;
-  el("statusDetail").textContent = detail;
 }
 
 chrome.runtime.onMessage.addListener((message: AgentStatusUpdate) => {
   if (message.type !== "AGENT_STATUS_UPDATE") return;
-  setStatus("working", message.title, message.detail);
+  setStatus("working", message.title);
 });
 
 async function poll(): Promise<void> {
@@ -60,45 +58,23 @@ async function poll(): Promise<void> {
     });
     console.log("[Nomad] poll: result =", result);
     if (result.passportStatus === "detection_failed") {
-      setStatus(
-        "active",
-        "Waiting for action prompt",
-        "Nomad could not analyze the last message and will retry automatically.",
-      );
+      setStatus("active", "Waiting for action prompt");
     } else if (result.passportStatus === "failed") {
-      setStatus(
-        "error",
-        "Passport creation failed",
-        result.error ?? "Nomad could not create the agent passport.",
-      );
+      setStatus("error", "Passport creation failed");
     } else if (
       result.passportStatus === "created" ||
       result.passportStatus === "existing"
     ) {
       passportReady = true;
-      setStatus(
-        "success",
-        "Passport ready",
-        result.passportStatus === "created"
-          ? "Agent key and scoped permissions were created on devnet."
-          : "The agent key and permission passport are active on devnet.",
-      );
+      setStatus("success", "Passport ready");
     } else if (passportReady) {
-      setStatus(
-        "success",
-        "Passport ready",
-        "Nomad is monitoring ChatGPT with an active agent passport.",
-      );
+      setStatus("success", "Passport ready");
     } else {
-      setStatus(
-        "active",
-        "Waiting for action prompt",
-        "Type an agent request in ChatGPT to begin.",
-      );
+      setStatus("active", "Waiting for action prompt");
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    setStatus("error", "Connection issue", message);
+    setStatus("error", "Connection issue");
     console.warn(
       `[Nomad] poll error: ${message}`,
     );

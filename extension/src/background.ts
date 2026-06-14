@@ -70,11 +70,10 @@ void chrome.sidePanel
     console.error("[Nomad] Could not configure side panel", error);
   });
 
-function updatePanelStatus(title: string, detail: string): void {
+function updatePanelStatus(title: string): void {
   const update: AgentStatusUpdate = {
     type: "AGENT_STATUS_UPDATE",
     title,
-    detail,
   };
   void chrome.runtime.sendMessage(update).catch(() => {
     // The panel may have closed while background work was finishing.
@@ -500,7 +499,6 @@ async function handle(msg: Msg): Promise<unknown> {
       tlog("log", `calling classifyAgentIntent: "${text.slice(0, 100)}"`);
       updatePanelStatus(
         "Analyzing action prompt",
-        "Checking the latest ChatGPT message for agent intent...",
       );
       let wantsAgent = false;
       try {
@@ -525,7 +523,6 @@ async function handle(msg: Msg): Promise<unknown> {
         try {
           updatePanelStatus(
             "Checking passport",
-            "Looking for an existing permission passport on devnet...",
           );
           const existing = await readPassport("devnet");
           if (existing) {
@@ -535,14 +532,12 @@ async function handle(msg: Msg): Promise<unknown> {
             tlog("log", "creating passport on devnet via sponsor...");
             updatePanelStatus(
               "Preparing agent key",
-              "Creating or loading the cryptographic agent identity...",
             );
             const agentPk = await agent.getOrCreate();
             const owner = await ownerSigner("embedded", "devnet");
             const client = new PassportClient("devnet");
             updatePanelStatus(
               "Writing passport",
-              "Saving scoped permissions to Solana devnet...",
             );
             const txSig = await client.initialize(
               owner,

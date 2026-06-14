@@ -930,8 +930,7 @@
       }
 
       .status-copy {
-        display: grid;
-        gap: 3px;
+        display: block;
         min-width: 0;
       }
 
@@ -939,12 +938,6 @@
         color: var(--strong);
         font-size: 15px;
         font-weight: 700;
-      }
-
-      .status-detail {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 520;
       }
 
       .status-dot {
@@ -1027,9 +1020,6 @@
           <span class="status-copy">
             <span class="status-title" id="statusTitle">
               Waiting for action prompt
-            </span>
-            <span class="status-detail" id="statusDetail">
-              Type an agent request in ChatGPT to begin.
             </span>
           </span>
         </div>

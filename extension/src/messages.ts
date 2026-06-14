@@ -110,7 +110,6 @@ export interface AgentIntentResult {
 export interface AgentStatusUpdate {
   type: "AGENT_STATUS_UPDATE";
   title: string;
-  detail: string;
 }
 
 /** Result of signing an arbitrary message with the agent key. */
