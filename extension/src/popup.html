@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nomad</title>
+    <title>nomad</title>
     <style>
       :root {
         color-scheme: dark;
@@ -25,12 +25,20 @@
         --green: #8ef0b2;
         --red: #ff9b8d;
         --warn: #ffd486;
-        --display: Georgia, "Times New Roman", Times, serif;
+        --display: "Instrument Serif", ui-serif, serif;
         --sans:
           -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
           ui-sans-serif, system-ui, sans-serif;
         --mono:
           "SFMono-Regular", "Roboto Mono", Menlo, Monaco, Consolas, monospace;
+      }
+
+      @font-face {
+        font-family: "Instrument Serif";
+        src: url("/brand/fonts/instrument-serif-latin.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+        font-display: block;
       }
 
       * {
@@ -65,7 +73,7 @@
             rgba(4, 8, 12, 0.14) 42%,
             rgba(4, 8, 12, 0.36) 100%
           ),
-          url("/nomad-mountain-lake.jpg") center / cover no-repeat,
+          url("/nomadbg.jpg") center / cover no-repeat,
           #101417;
         color: var(--ink);
         font: 12px/1.45 var(--sans);
@@ -139,10 +147,12 @@
         text-align: center;
       }
 
-      h1 {
-        margin: 0;
-        color: var(--ink);
-        font: 500 27px/1 var(--display);
+      .brand-logo {
+        display: block;
+        width: 148px;
+        height: auto;
+        margin: 0 auto;
+        letter-spacing: -0.035em;
       }
 
       .grid {
@@ -944,7 +954,12 @@
   <body>
     <main class="shell">
       <header class="masthead">
-        <h1 id="nomad-title">Nomad</h1>
+        <img
+          id="nomad-title"
+          class="brand-logo"
+          src="/brand/nomad-wordmark-white.svg"
+          alt="nomad"
+        />
       </header>
 
       <section class="wallet-gate">

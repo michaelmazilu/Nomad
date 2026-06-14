@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 
@@ -13,15 +14,21 @@ export function Header() {
       {/* Top navy bar */}
       <div className="bg-amz-navy text-white">
         <div className="mx-auto flex max-w-[1500px] items-center gap-2 px-2 py-1.5 sm:gap-3">
-          {/* Brand wordmark (NOT Amazon's logo/smile) */}
+          {/* Fictional Jamazon wordmark */}
           <Link
             href="/"
             data-testid="brand-home"
             aria-label="Jamazon home"
-            className="flex shrink-0 items-end rounded px-2 py-1 hover:outline hover:outline-1 hover:outline-white/60"
+            className="flex shrink-0 items-center rounded px-1 py-0.5 hover:outline hover:outline-1 hover:outline-white/60"
           >
-            <span className="text-2xl font-bold tracking-tight">Jamazon</span>
-            <span className="mb-1 ml-0.5 text-amz-yellow">▾</span>
+            <Image
+              src="/jamazon-logo.png"
+              alt="Jamazon.ca"
+              width={825}
+              height={270}
+              priority
+              className="h-10 w-auto sm:h-11"
+            />
           </Link>
 
           {/* Deliver-to (decorative) */}
