@@ -21,7 +21,7 @@ export default function CheckoutPage() {
   // Shipping is free in this mock; the order total equals the item subtotal.
   const totalCents = subtotalCents;
 
-  function handlePlaceOrder() {
+  async function handlePlaceOrder() {
     setValidationError(null);
 
     // §8.1 / §11.3–11.4 — validate before running the (mock) verification.
@@ -51,11 +51,12 @@ export default function CheckoutPage() {
     }));
     const snapshotTotal = totalCents;
 
-    // Cosmetic "verifying" delay to feel like a real check. NO network request is
-    // made — verifyAgent() is a synchronous, hardcoded, client-side lookup.
+    // Real verification: POST /api/verify reads the agent's passport from the
+    // Solana blockchain and applies permits(). The network round-trip is what the
+    // "Verifying agent passport…" status now reflects.
     setStatus("verifying");
-    window.setTimeout(() => {
-      const decision = verifyAgent(agentId);
+    try {
+      const decision = await verifyAgent(agentId);
       if (decision.decision === "approved") {
         setResult({
           decision: "approved",
@@ -66,11 +67,13 @@ export default function CheckoutPage() {
         });
         clear(); // §8.4 — clear the cart only on approval
       } else {
-        // §8.5 — keep the cart on fraud
+        // §8.5 — any non-approval (no_passport / not_permitted / bad id /
+        // verifier unavailable) keeps the cart intact.
         setResult({ decision: "fraudulent", reason: decision.reason });
       }
+    } finally {
       setStatus("idle");
-    }, 800);
+    }
   }
 
   function handleReset() {
@@ -112,7 +115,9 @@ export default function CheckoutPage() {
     <div data-testid="checkout-page">
       <h1 className="mb-3 border-b border-gray-300 pb-2 text-2xl font-medium text-[#0f1111]">
         Checkout{" "}
-        <span className="text-sm font-normal text-gray-500">(Jamazon Mock)</span>
+        <span className="text-sm font-normal text-gray-500">
+          (Jamazon Mock)
+        </span>
       </h1>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
@@ -149,8 +154,8 @@ export default function CheckoutPage() {
               <span>Jamazon Rewards •••• •••• •••• 4242</span>
             </div>
             <p className="mt-2 text-xs text-gray-400">
-              Prefilled demo card — decorative only. No real payment is processed
-              and no card data is collected.
+              Prefilled demo card — decorative only. No real payment is
+              processed and no card data is collected.
             </p>
           </section>
 
@@ -198,9 +203,7 @@ export default function CheckoutPage() {
             <h2 className="text-lg font-bold text-[#0f1111]">Order Summary</h2>
             <dl className="mt-2 space-y-1 text-sm">
               <div className="flex justify-between">
-                <dt>
-                  Items ({itemCount})
-                </dt>
+                <dt>Items ({itemCount})</dt>
                 <dd>{formatCents(subtotalCents)}</dd>
               </div>
               <div className="flex justify-between">

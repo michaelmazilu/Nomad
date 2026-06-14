@@ -45,7 +45,8 @@ export function OrderResult({
           <span aria-hidden="true">✓</span> Order placed, thank you!
         </h2>
         <p className="mt-1 text-sm text-[#0f1111]">
-          Your order is confirmed. A confirmation would normally be emailed to you.
+          Your order is confirmed. A confirmation would normally be emailed to
+          you.
         </p>
 
         <dl className="mt-3 space-y-1 text-sm">
@@ -76,7 +77,9 @@ export function OrderResult({
           </ul>
           <p className="mt-2 text-right text-base font-bold">
             Order total:{" "}
-            <span data-testid="order-total">{formatCents(result.totalCents)}</span>
+            <span data-testid="order-total">
+              {formatCents(result.totalCents)}
+            </span>
           </p>
         </div>
 
@@ -102,7 +105,18 @@ export function OrderResult({
     );
   }
 
-  // Fraudulent
+  // Any non-approval. The block, data-testid and data-reason are preserved for
+  // DOM-driven agents and tests, but the heading is reason-aware: a real on-chain
+  // denial reads as fraud, while an outage or a malformed ID reads as what it is.
+  const heading =
+    result.reason === "verifier_unavailable"
+      ? "Verification unavailable"
+      : result.reason === "bad_agent_id"
+        ? "Couldn’t verify that Agent ID"
+        : result.reason === "empty_agent_id"
+          ? "Agent ID required"
+          : "Fraudulent transaction detected";
+
   return (
     <div
       data-testid="order-fraudulent"
@@ -111,14 +125,14 @@ export function OrderResult({
       className="rounded-md border-2 border-amz-price bg-[#fff0f0] p-5"
     >
       <h2 className="flex items-center gap-2 text-xl font-bold text-amz-price">
-        <span aria-hidden="true">⚠️</span> Fraudulent transaction detected
+        <span aria-hidden="true">⚠️</span> {heading}
       </h2>
       <p className="mt-2 text-sm text-[#0f1111]" data-testid="fraud-reason">
         {fraudReasonMessage(result.reason)}
       </p>
       <p className="mt-1 text-sm text-gray-700">
-        Your order was <span className="font-semibold">not</span> placed and your
-        cart has been preserved.
+        Your order was <span className="font-semibold">not</span> placed and
+        your cart has been preserved.
       </p>
       {onReset && (
         <button

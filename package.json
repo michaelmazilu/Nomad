@@ -10,7 +10,8 @@
     "sponsor",
     "inference",
     "extension",
-    "connector"
+    "connector",
+    "mock-amazon"
   ],
   "scripts": {
     "dev:connector": "npm run dev -w @agent-passport/connector",
@@ -21,6 +22,7 @@
     "test": "npm run test --workspaces --if-present",
     "test:program": "anchor test",
     "demo": "tsx demo/e2e.ts",
+    "demo:passport": "tsx demo/createDemoPassport.ts",
     "grant": "tsx demo/grant.ts",
     "lint": "prettier --check .",
     "format": "prettier --write ."
