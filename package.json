@@ -7,12 +7,16 @@
   "workspaces": [
     "packages/*",
     "verifier",
+    "sponsor",
+    "inference",
     "extension",
     "connector"
   ],
   "scripts": {
     "dev:connector": "npm run dev -w @agent-passport/connector",
     "dev:extension": "npm run dev -w @agent-passport/extension",
+    "dev:sponsor": "npm run dev -w @agent-passport/sponsor",
+    "dev:inference": "npm run dev -w @agent-passport/inference",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:program": "anchor test",

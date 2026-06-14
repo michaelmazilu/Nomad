@@ -3,10 +3,13 @@ import type { VerifyStatus } from "@agent-passport/verifier";
 import type { InferenceRiskLevel } from "./inference";
 
 /**
- * Owner-wallet mode. `phantom` is the real path (keys stay in Phantom); `local`
- * is an explicitly dev-only in-extension keypair for localnet / CI.
+ * Owner-wallet mode.
+ * - `embedded`: in-app keypair is the authority, a backend sponsor pays fees/rent
+ *   (no wallet app, no SOL for the user). The recommended production path.
+ * - `phantom`: keys stay in Phantom; the user installs a wallet and pays.
+ * - `local`: explicitly dev-only in-extension keypair that self-pays (localnet/CI).
  */
-export type OwnerMode = "phantom" | "local";
+export type OwnerMode = "embedded" | "phantom" | "local";
 export type WalletProviderKind = "embedded" | "injected";
 
 /** Requests the popup (or an external page) sends to the background worker. */
@@ -14,6 +17,7 @@ export type Msg =
   | { type: "AGENT_ENSURE" }
   | { type: "AGENT_GET" }
   | { type: "PHANTOM_CONNECT"; cluster: Cluster }
+  | { type: "OWNER_EMBEDDED_ENSURE"; cluster: Cluster }
   | { type: "OWNER_LOCAL_ENSURE" }
   | { type: "OWNER_GET"; cluster: Cluster; mode: OwnerMode }
   | { type: "OWNER_AIRDROP"; cluster: Cluster; mode: OwnerMode }
@@ -34,7 +38,8 @@ export type Msg =
     }
   | { type: "PASSPORT_REVOKE"; cluster: Cluster; mode: OwnerMode }
   | { type: "ATTEMPT_ACTION"; cluster: Cluster; action: string }
-  | { type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB" };
+  | { type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB" }
+  | { type: "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB" };
 
 export interface AgentInfo {
   agentPublicKey: string | null;
@@ -78,6 +83,16 @@ export interface InferenceResult {
     url: string;
     title?: string;
   };
+}
+
+/** Result of classifying the latest ChatGPT user message for agent-creation intent. */
+export interface AgentIntentResult {
+  /** True when the latest user message differs from the last one we classified. */
+  changed: boolean;
+  /** Haiku's verdict: did the user ask to create an agent? */
+  wantsAgent: boolean;
+  /** The classified message text, or null when there is nothing to classify. */
+  text: string | null;
 }
 
 export type Response =

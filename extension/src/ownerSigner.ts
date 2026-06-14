@@ -2,6 +2,7 @@ import { Transaction, type Keypair, type PublicKey } from "@solana/web3.js";
 import type { Cluster } from "@agent-passport/sdk";
 import { assertNetworkMatch, type PhantomBridge } from "./phantom";
 import { OwnerError } from "./errors";
+import type { SponsorClient } from "./sponsorClient";
 import type { WalletProviderKind } from "./messages";
 
 /**
@@ -14,9 +15,15 @@ import type { WalletProviderKind } from "./messages";
  * even though Phantom can't reach a local validator).
  */
 export interface OwnerSigner {
-  readonly kind: "local" | "phantom";
+  readonly kind: "local" | "phantom" | "embedded";
   /** The authority public key written into / checked against the passport. */
   getPublicKey(): PublicKey;
+  /**
+   * Who pays the rent + transaction fees (the transaction fee payer). Equals the
+   * authority for self-paying owners (local/Phantom); for a sponsored owner it is
+   * the sponsor's key, so the authority can hold zero SOL.
+   */
+  getFeePayer(): PublicKey;
   /** Add this owner's signature to an already-built transaction. */
   signTransaction(tx: Transaction): Promise<Transaction>;
   /** Execute a fully assembled transaction and return its chain signature. */
@@ -39,6 +46,10 @@ export class LocalOwnerSigner implements OwnerSigner {
     return this.keypair.publicKey;
   }
 
+  getFeePayer(): PublicKey {
+    return this.keypair.publicKey;
+  }
+
   async signTransaction(tx: Transaction): Promise<Transaction> {
     tx.partialSign(this.keypair);
     return tx;
@@ -49,6 +60,44 @@ export class LocalOwnerSigner implements OwnerSigner {
     submit: (signed: Transaction) => Promise<string>,
   ): Promise<string> {
     return submit(await this.signTransaction(tx));
+  }
+}
+
+/**
+ * Embedded + sponsored owner: an in-app keypair is the authority, but a backend
+ * sponsor pays the rent/fees. The owner key signs locally (no wallet app, no
+ * prompt, no SOL), then the partially-signed transaction is relayed to the
+ * sponsor, which co-signs as fee payer and submits. The sponsor never sees the
+ * authority key — it only adds a fee-payer signature to a validated transaction.
+ */
+export class SponsoredOwnerSigner implements OwnerSigner {
+  readonly kind = "embedded";
+
+  constructor(
+    private readonly keypair: Keypair,
+    private readonly sponsor: SponsorClient,
+    private readonly feePayer: PublicKey,
+  ) {}
+
+  getPublicKey(): PublicKey {
+    return this.keypair.publicKey;
+  }
+
+  getFeePayer(): PublicKey {
+    return this.feePayer;
+  }
+
+  async signTransaction(tx: Transaction): Promise<Transaction> {
+    tx.partialSign(this.keypair);
+    return tx;
+  }
+
+  /** Sign as authority, then relay to the sponsor (which pays + submits). */
+  async executeTransaction(
+    tx: Transaction,
+    _submit: (signed: Transaction) => Promise<string>,
+  ): Promise<string> {
+    return this.sponsor.sponsor(await this.signTransaction(tx));
   }
 }
 
@@ -69,6 +118,10 @@ export class PhantomOwnerSigner implements OwnerSigner {
   ) {}
 
   getPublicKey(): PublicKey {
+    return this.publicKey;
+  }
+
+  getFeePayer(): PublicKey {
     return this.publicKey;
   }
 

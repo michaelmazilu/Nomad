@@ -57,7 +57,18 @@
       "accounts": [
         {
           "name": "authority",
-          "docs": ["Owner wallet: authority + rent payer. Signs the write."],
+          "docs": [
+            "Owner authority: stored as the passport authority and the only signer",
+            "allowed to update/close later. Pays NO rent, so it may hold zero SOL."
+          ],
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Rent + fee payer. Equals `authority` for a local/dev owner, or a separate",
+            "sponsor key for an embedded owner. Funds the account; never the authority."
+          ],
           "writable": true,
           "signer": true
         },

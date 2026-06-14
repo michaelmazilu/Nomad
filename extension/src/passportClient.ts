@@ -73,6 +73,7 @@ export class PassportClient {
 
   initializeIx(
     authority: PublicKey,
+    payer: PublicKey,
     agent: PublicKey,
     label: string,
     permissions: string[],
@@ -80,7 +81,7 @@ export class PassportClient {
     requireValid(permissions);
     return this.program.methods
       .initializePassport(agent, label, permissions)
-      .accountsPartial({ authority, passport: this.passportPda(agent) })
+      .accountsPartial({ authority, payer, passport: this.passportPda(agent) })
       .instruction();
   }
 
@@ -154,10 +155,17 @@ export class PassportClient {
     permissions: string[],
   ): Promise<string> {
     const authority = owner.getPublicKey();
-    const ix = await this.initializeIx(authority, agent, label, permissions);
+    const payer = owner.getFeePayer();
+    const ix = await this.initializeIx(
+      authority,
+      payer,
+      agent,
+      label,
+      permissions,
+    );
     const tx = PassportClient.assemble(
       [ix],
-      authority,
+      payer,
       await this.latestBlockhash(),
     );
     return owner.executeTransaction(tx, (signed) => this.submit(signed));
@@ -173,7 +181,7 @@ export class PassportClient {
     const ix = await this.updateIx(authority, agent, label, permissions);
     const tx = PassportClient.assemble(
       [ix],
-      authority,
+      owner.getFeePayer(),
       await this.latestBlockhash(),
     );
     return owner.executeTransaction(tx, (signed) => this.submit(signed));
@@ -184,7 +192,7 @@ export class PassportClient {
     const ix = await this.revokeIx(authority, agent);
     const tx = PassportClient.assemble(
       [ix],
-      authority,
+      owner.getFeePayer(),
       await this.latestBlockhash(),
     );
     return owner.executeTransaction(tx, (signed) => this.submit(signed));

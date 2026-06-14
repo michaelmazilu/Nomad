@@ -14,12 +14,23 @@ import { PassportClient } from "./passportClient";
 import {
   LocalOwnerSigner,
   PhantomOwnerSigner,
+  SponsoredOwnerSigner,
   type OwnerSigner,
 } from "./ownerSigner";
+import { SponsorClient } from "./sponsorClient";
 import { TabPhantomBridge, type ConnectorMessage } from "./phantom";
 import { NotConnectedError, RpcError } from "./errors";
-import { CONNECTOR_URL, INFERENCE_PROXY_URL } from "./config";
-import { extractChatGptConversation } from "./chatgptExtractor";
+import {
+  CONNECTOR_URL,
+  INFERENCE_PROXY_URL,
+  INTENT_PROXY_URL,
+  SPONSOR_URL,
+  SPONSOR_AUTH_TOKEN,
+} from "./config";
+import {
+  extractChatGptConversation,
+  extractLatestChatGptUserMessage,
+} from "./chatgptExtractor";
 import {
   inferFromChatGptContext,
   isSupportedChatGptUrl,
@@ -30,6 +41,7 @@ import {
 } from "./inference";
 import type {
   AgentInfo,
+  AgentIntentResult,
   AirdropResult,
   AttemptResult,
   InferenceResult,
@@ -51,6 +63,20 @@ const agent = new AgentKeyManager(
 const localOwner = new OwnerWallet(
   new PlaintextKeyStore("agentPassport.ownerKey"),
 );
+// Embedded owner: an in-app authority key whose writes are paid by the sponsor
+// backend. Same in-extension keypair machinery as the local owner; the
+// difference is purely who pays (sponsor) and that it never needs funding.
+const embeddedOwner = new OwnerWallet(
+  new PlaintextKeyStore("agentPassport.embeddedOwnerKey"),
+);
+
+let sponsorSingleton: SponsorClient | null = null;
+function sponsor(): SponsorClient {
+  if (!sponsorSingleton) {
+    sponsorSingleton = new SponsorClient(SPONSOR_URL, SPONSOR_AUTH_TOKEN);
+  }
+  return sponsorSingleton;
+}
 
 const PHANTOM_KEY = "agentPassport.phantom";
 interface PhantomConnection {
@@ -96,9 +122,9 @@ async function getBalance(cluster: Cluster, pubkey: string): Promise<number> {
 }
 
 async function ownerAddress(mode: OwnerMode): Promise<string | null> {
-  return mode === "local"
-    ? localOwner.getPublicKey()
-    : ((await loadPhantom())?.publicKey ?? null);
+  if (mode === "local") return localOwner.getPublicKey();
+  if (mode === "embedded") return embeddedOwner.getPublicKey();
+  return (await loadPhantom())?.publicKey ?? null;
 }
 
 /** Resolve the active owner signer. Phantom never exposes its key to us. */
@@ -107,6 +133,12 @@ async function ownerSigner(
   cluster: Cluster,
 ): Promise<OwnerSigner> {
   if (mode === "local") return new LocalOwnerSigner(await localOwner.keypair());
+  if (mode === "embedded") {
+    const keypair = await embeddedOwner.keypair();
+    const client = sponsor();
+    const feePayer = await client.feePayer();
+    return new SponsoredOwnerSigner(keypair, client, feePayer);
+  }
   const conn = await loadPhantom();
   if (!conn)
     throw new NotConnectedError(
@@ -164,6 +196,59 @@ async function activeChatGptContext(): Promise<NormalizedTabContext> {
     title: tab.title ?? extracted.title,
     text: extracted.text,
   });
+}
+
+/** Read the most recent message the user sent in the active ChatGPT tab. */
+async function activeChatGptLatestUserText(): Promise<string> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !tab.url) {
+    throw new Error("Open a ChatGPT tab to detect agent intent.");
+  }
+  if (!isSupportedChatGptUrl(tab.url)) {
+    throw new Error("Agent detection supports chatgpt.com tabs only.");
+  }
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: extractLatestChatGptUserMessage,
+  });
+  const extracted = injection?.result as ExtractedTabContext | undefined;
+  return extracted?.text ?? "";
+}
+
+// Remember the last message we classified so polling doesn't re-ask Haiku about
+// text the user already sent (and so the popup only reacts to fresh messages).
+let lastClassifiedText: string | null = null;
+
+/**
+ * Ask the backend intent proxy (which holds the Anthropic key and calls Haiku
+ * 4.5) whether a single ChatGPT message asks to create an agent.
+ */
+async function classifyAgentIntent(text: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(INTENT_PROXY_URL, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(
+        `intent proxy failed (${response.status}): ${body || response.statusText}`,
+      );
+    }
+    const parsed = JSON.parse(body) as { wantsAgent?: boolean };
+    return parsed.wantsAgent === true;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("agent intent detection timed out");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function inferPermissionsFromContext(
@@ -242,6 +327,16 @@ async function handle(msg: Msg): Promise<unknown> {
         balanceSol,
         providerKind,
         walletCluster,
+      } satisfies OwnerInfo;
+    }
+    case "OWNER_EMBEDDED_ENSURE": {
+      // Create (or load) the in-app authority key. It never needs funding — the
+      // sponsor pays — so balance is display-only and expected to be zero.
+      const ownerPublicKey = await embeddedOwner.getOrCreate();
+      return {
+        kind: "embedded",
+        ownerPublicKey,
+        balanceSol: await getBalance(msg.cluster, ownerPublicKey),
       } satisfies OwnerInfo;
     }
     case "OWNER_LOCAL_ENSURE": {
@@ -347,8 +442,27 @@ async function handle(msg: Msg): Promise<unknown> {
       const context = await activeChatGptContext();
       return await inferPermissionsFromContext(context);
     }
+    case "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB": {
+      const text = await activeChatGptLatestUserText();
+      if (!text || text === lastClassifiedText) {
+        return {
+          changed: false,
+          wantsAgent: false,
+          text: text || null,
+        } satisfies AgentIntentResult;
+      }
+      lastClassifiedText = text;
+      const wantsAgent = await classifyAgentIntent(text);
+      return { changed: true, wantsAgent, text } satisfies AgentIntentResult;
+    }
   }
 }
+
+// Open the side panel (a persistent docked surface) when the toolbar icon is
+// clicked, instead of the action popup that auto-closes on blur.
+chrome.sidePanel
+  ?.setPanelBehavior?.({ openPanelOnActionClick: true })
+  .catch((e) => console.error("[Nomad] setPanelBehavior failed", e));
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   handle(msg as Msg)

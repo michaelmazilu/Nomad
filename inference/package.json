@@ -1,0 +1,23 @@
+{
+  "name": "@agent-passport/inference",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend proxy that holds the Anthropic API key and classifies whether a ChatGPT message asks to create an agent (Haiku 4.5).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsup src/server.ts --format esm --clean --sourcemap",
+    "start": "tsx --env-file=.env src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.4.0"
+  }
+}
