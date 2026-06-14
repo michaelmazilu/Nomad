@@ -148,7 +148,7 @@
 
       .brand-logo {
         display: block;
-        width: 148px;
+        width: min(230px, 82%);
         height: auto;
         margin: 0 auto;
         letter-spacing: -0.035em;
@@ -917,15 +917,55 @@
         display: none;
       }
 
-      .toggle-state {
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        color: var(--muted);
+      .agent-status {
+        cursor: default;
+        justify-content: flex-start;
+        gap: 14px;
+        border-radius: 22px;
+        padding: 14px 16px;
       }
 
-      .phantom-bar[data-state="on"] {
+      .agent-status:hover {
+        transform: none;
+      }
+
+      .status-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .status-title {
+        color: var(--strong);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .status-detail {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 520;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--warn);
+        box-shadow: 0 0 0 5px rgba(255, 212, 134, 0.12);
+      }
+
+      .agent-status[data-state="working"] {
+        border-color: rgba(255, 212, 134, 0.52);
+      }
+
+      .agent-status[data-state="working"] .status-dot {
+        animation: statusPulse 1.2s ease-in-out infinite;
+      }
+
+      .agent-status[data-state="active"],
+      .agent-status[data-state="success"] {
         border-color: rgba(142, 240, 178, 0.62);
         background:
           linear-gradient(
@@ -937,16 +977,27 @@
           rgba(142, 240, 178, 0.16);
       }
 
-      .phantom-bar[data-state="on"] .toggle-state {
-        color: var(--green);
+      .agent-status[data-state="active"] .status-dot,
+      .agent-status[data-state="success"] .status-dot {
+        background: var(--green);
+        box-shadow: 0 0 0 5px rgba(142, 240, 178, 0.12);
       }
 
-      .status-success {
-        margin: 16px 0 0;
-        text-align: center;
-        color: var(--green);
-        font-size: 15px;
-        font-weight: 700;
+      .agent-status[data-state="error"] {
+        border-color: rgba(255, 155, 141, 0.62);
+        background: rgba(255, 155, 141, 0.12);
+      }
+
+      .agent-status[data-state="error"] .status-dot {
+        background: var(--red);
+        box-shadow: 0 0 0 5px rgba(255, 155, 141, 0.12);
+      }
+
+      @keyframes statusPulse {
+        50% {
+          opacity: 0.45;
+          transform: scale(0.82);
+        }
       }
     </style>
   </head>
@@ -963,21 +1014,25 @@
 
       <section class="wallet-gate">
         <div class="wallet-head">
-          <h2>Mode</h2>
+          <h2>Agent status</h2>
         </div>
-        <button
-          id="toggleMonitor"
-          class="phantom-bar"
-          type="button"
-          data-state="off"
-          aria-pressed="false"
-          aria-label="Turn agent detection on"
+        <div
+          id="agentStatus"
+          class="phantom-bar agent-status"
+          data-state="active"
+          role="status"
+          aria-live="polite"
         >
-          <span class="toggle-state" id="toggleLabel">Off</span>
-        </button>
-        <p id="detectStatus" class="status-success" hidden>
-          Passport Successfully Created!
-        </p>
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-copy">
+            <span class="status-title" id="statusTitle">
+              Waiting for action prompt
+            </span>
+            <span class="status-detail" id="statusDetail">
+              Type an agent request in ChatGPT to begin.
+            </span>
+          </span>
+        </div>
       </section>
     </main>
     <script type="module" src="./popup.ts"></script>

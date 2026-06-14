@@ -96,6 +96,21 @@ export interface AgentIntentResult {
   wantsAgent: boolean;
   /** The classified message text, or null when there is nothing to classify. */
   text: string | null;
+  /** Outcome of the passport step for this poll. */
+  passportStatus:
+    | "not_requested"
+    | "detection_failed"
+    | "existing"
+    | "created"
+    | "failed";
+  /** Failure detail when passportStatus is "failed". */
+  error?: string;
+}
+
+export interface AgentStatusUpdate {
+  type: "AGENT_STATUS_UPDATE";
+  title: string;
+  detail: string;
 }
 
 /** Result of signing an arbitrary message with the agent key. */
