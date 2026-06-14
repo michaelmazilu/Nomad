@@ -12,7 +12,7 @@ import type { InferenceRiskLevel } from "./inference";
 export type OwnerMode = "embedded" | "phantom" | "local";
 export type WalletProviderKind = "embedded" | "injected";
 
-/** Requests the popup (or an external page) sends to the background worker. */
+/** Requests the side panel (or an external page) sends to the background worker. */
 export type Msg =
   | { type: "AGENT_ENSURE" }
   | { type: "AGENT_GET" }

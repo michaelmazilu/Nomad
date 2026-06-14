@@ -63,8 +63,14 @@ import type {
   WalletProviderKind,
 } from "./messages";
 
-// Both keys live ONLY here, in the service worker, behind the KeyStore. The popup
-// is a thin UI that messages this worker — keys never enter the popup DOM. The
+void chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => {
+    console.error("[Nomad] Could not configure side panel", error);
+  });
+
+// Both keys live ONLY here, in the service worker, behind the KeyStore. The side
+// panel is a thin UI that messages this worker — keys never enter its DOM. The
 // agent key signs action requests; the LOCAL owner key (dev-only) signs passport
 // writes. The real owner path is Phantom, whose key never enters the extension.
 const agent = new AgentKeyManager(
@@ -181,16 +187,18 @@ async function readPassport(
   return { scopes: p.permissions, label: p.label };
 }
 
-async function activeChatGptContext(): Promise<NormalizedTabContext> {
+async function activeChatGptTab(): Promise<chrome.tabs.Tab | undefined> {
   const [tab] = await chrome.tabs.query({
     active: true,
-    currentWindow: true,
+    lastFocusedWindow: true,
   });
+  return tab?.url && isSupportedChatGptUrl(tab.url) ? tab : undefined;
+}
+
+async function activeChatGptContext(): Promise<NormalizedTabContext> {
+  const tab = await activeChatGptTab();
   if (!tab?.id || !tab.url) {
     throw new Error("Open a ChatGPT tab before inferring permissions.");
-  }
-  if (!isSupportedChatGptUrl(tab.url)) {
-    throw new Error("Inference currently supports chatgpt.com tabs only.");
   }
 
   const [injection] = await chrome.scripting.executeScript({
@@ -210,14 +218,10 @@ async function activeChatGptContext(): Promise<NormalizedTabContext> {
 
 /** Read the most recent message the user sent in the active ChatGPT tab. */
 async function activeChatGptLatestUserText(): Promise<string> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = await activeChatGptTab();
   tlog("log", `activeChatGptLatestUserText: active tab = ${tab?.url ?? "(none)"}`);
   if (!tab?.id || !tab.url) {
     throw new Error("Open a ChatGPT tab to detect agent intent.");
-  }
-  if (!isSupportedChatGptUrl(tab.url)) {
-    tlog("warn", `tab URL not supported for agent detection: ${tab.url}`);
-    throw new Error("Agent detection supports chatgpt.com tabs only.");
   }
   tlog("log", `injecting extractor into tab ${tab.id}`);
   const [injection] = await chrome.scripting.executeScript({
@@ -230,7 +234,7 @@ async function activeChatGptLatestUserText(): Promise<string> {
 }
 
 // Remember the last message we classified so polling doesn't re-ask Haiku about
-// text the user already sent (and so the popup only reacts to fresh messages).
+// text the user already sent (and so the panel only reacts to fresh messages).
 let lastClassifiedText: string | null = null;
 
 /**

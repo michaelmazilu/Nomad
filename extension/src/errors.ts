@@ -1,6 +1,6 @@
 /**
  * Typed errors for the owner-wallet / passport-write flow. Each maps to a
- * distinct, user-actionable failure so the popup can show a useful message
+ * distinct, user-actionable failure so the side panel can show a useful message
  * instead of a raw stack. `code` is a stable string the UI/tests can switch on.
  */
 

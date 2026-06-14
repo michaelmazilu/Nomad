@@ -3,7 +3,6 @@
 // can call getPublicKey() and signMessage() without knowing about the extension.
 
 type NomadRequest = { type: string; [k: string]: unknown };
-type SignedAction = { agentPublicKey: string; signature: string; request: { action: string; timestamp: number } };
 
 function nomadCall<T>(request: NomadRequest): Promise<T> {
   return new Promise((resolve, reject) => {

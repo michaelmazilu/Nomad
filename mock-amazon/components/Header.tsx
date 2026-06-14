@@ -45,24 +45,35 @@ export function Header() {
           <form
             role="search"
             aria-label="Site search (decorative demo — not functional)"
-            className="flex min-w-0 flex-1 items-stretch overflow-hidden rounded-md"
+            className="flex h-11 min-w-0 flex-1 items-stretch overflow-hidden rounded-lg bg-white focus-within:ring-2 focus-within:ring-[#ff9900]"
             onSubmit={(e) => e.preventDefault()}
           >
             <input
               type="text"
-              aria-label="Jamazon (decorative)"
+              aria-label="Search Jamazon.ca (decorative)"
               data-testid="search-input-decorative"
-              placeholder="Jamazon"
+              placeholder="Search Jamazon.ca"
               tabIndex={-1}
-              className="min-w-0 flex-1 px-3 py-2 text-sm text-white outline-none"
+              className="min-w-0 flex-1 bg-white px-4 text-base text-[#0f1111] outline-none placeholder:text-[#6f7373] sm:text-lg"
             />
             <button
               type="submit"
               aria-label="Search (decorative — does nothing in this demo)"
               tabIndex={-1}
-              className="bg-amz-orange px-4 text-black"
+              className="flex w-14 shrink-0 items-center justify-center bg-amz-orange text-amz-navy hover:bg-[#f3a847]"
             >
-              🔍
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+              >
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m15.5 15.5 5 5" />
+              </svg>
             </button>
           </form>
 

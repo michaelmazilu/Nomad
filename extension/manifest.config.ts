@@ -20,7 +20,7 @@ const sponsorHosts = hostPermissionFor(process.env.VITE_NOMAD_SPONSOR_URL);
 export default defineManifest({
   manifest_version: 3,
   name: "nomad",
-  version: "0.1.0",
+  version: "0.1.2",
   description:
     "Create an agent identity and manage its on-chain Nomad permission passport.",
   icons: {
@@ -31,7 +31,6 @@ export default defineManifest({
   },
   action: {
     default_title: "nomad",
-    default_popup: "src/popup.html",
     default_icon: {
       "16": "brand/icons/nomad-icon-16.png",
       "32": "brand/icons/nomad-icon-32.png",
@@ -69,7 +68,7 @@ export default defineManifest({
   ],
   permissions: ["storage", "activeTab", "scripting", "sidePanel"],
   host_permissions: [
-    // ChatGPT: standing access lets the popup/background read the active
+    // ChatGPT: standing access lets the side panel/background read the active
     // conversation reliably without depending on the activeTab grant lifetime.
     "https://chatgpt.com/*",
     "https://*.chatgpt.com/*",

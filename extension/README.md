@@ -39,7 +39,7 @@ The local proxy defaults to `OPENAI_MODEL=gpt-5-nano` for low-cost structured ex
 
 Both are generated with `Keypair.generate()` and stored as 64-byte secret keys
 behind the `KeyStore` interface, **only in the background service worker** — the
-popup is a thin UI that messages the worker, so raw keys never enter the popup
+side panel is a thin UI that messages the worker, so raw keys never enter its
 DOM. `PlaintextKeyStore` (default) is honestly _not_ encrypted; swap in
 `EncryptedKeyStore` (AES-GCM + PBKDF2) for encryption at rest.
 
@@ -47,7 +47,7 @@ The owner key replaces Phantom: it's the "dev owner wallet" model the brief
 allows. Authority stays strictly separate from identity — the agent key can never
 sign a write.
 
-## New-user flow (everything works in the popup)
+## New-user flow (everything works in the side panel)
 
 1. **Cluster** — pick `localnet` (after `anchor localnet`) or `devnet`.
 2. **Create / load agent key** → shows the agent public key.
