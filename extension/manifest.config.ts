@@ -31,6 +31,7 @@ export default defineManifest({
   },
   action: {
     default_title: "nomad",
+    default_popup: "src/popup.html",
     default_icon: {
       "16": "brand/icons/nomad-icon-16.png",
       "32": "brand/icons/nomad-icon-32.png",
