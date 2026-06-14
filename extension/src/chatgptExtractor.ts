@@ -39,11 +39,14 @@ export function extractLatestChatGptUserMessage(): ExtractedTabContext {
   const userNodes = Array.from(
     document.querySelectorAll('[data-message-author-role="user"]'),
   );
+  console.log(`[Nomad] chatgptExtractor: found ${userNodes.length} user message node(s)`);
   const last = userNodes[userNodes.length - 1];
+  const text = last ? readable(last) : "";
+  console.log(`[Nomad] chatgptExtractor: latest user text = "${text.slice(0, 100)}"`);
 
   return {
     url: location.href,
     title: document.title,
-    text: last ? readable(last) : "",
+    text,
   };
 }

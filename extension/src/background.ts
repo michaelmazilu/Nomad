@@ -39,6 +39,16 @@ import {
   type ExtractedTabContext,
   type NormalizedTabContext,
 } from "./inference";
+const LOG_URL = INTENT_PROXY_URL.replace(/\/[^/]+$/, "/log");
+function tlog(level: "log" | "warn" | "error", msg: string): void {
+  console[level](`[Nomad] ${msg}`);
+  fetch(LOG_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ level, msg }),
+  }).catch(() => {});
+}
+
 import type {
   AgentInfo,
   AgentIntentResult,
@@ -201,17 +211,21 @@ async function activeChatGptContext(): Promise<NormalizedTabContext> {
 /** Read the most recent message the user sent in the active ChatGPT tab. */
 async function activeChatGptLatestUserText(): Promise<string> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  tlog("log", `activeChatGptLatestUserText: active tab = ${tab?.url ?? "(none)"}`);
   if (!tab?.id || !tab.url) {
     throw new Error("Open a ChatGPT tab to detect agent intent.");
   }
   if (!isSupportedChatGptUrl(tab.url)) {
+    tlog("warn", `tab URL not supported for agent detection: ${tab.url}`);
     throw new Error("Agent detection supports chatgpt.com tabs only.");
   }
+  tlog("log", `injecting extractor into tab ${tab.id}`);
   const [injection] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: extractLatestChatGptUserMessage,
   });
   const extracted = injection?.result as ExtractedTabContext | undefined;
+  tlog("log", `injection result: ${JSON.stringify(extracted)}`);
   return extracted?.text ?? "";
 }
 
@@ -224,6 +238,7 @@ let lastClassifiedText: string | null = null;
  * 4.5) whether a single ChatGPT message asks to create an agent.
  */
 async function classifyAgentIntent(text: string): Promise<boolean> {
+  tlog("log", `classifyAgentIntent: POSTing to ${INTENT_PROXY_URL}`);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
@@ -234,6 +249,7 @@ async function classifyAgentIntent(text: string): Promise<boolean> {
       body: JSON.stringify({ text }),
     });
     const body = await response.text();
+    tlog("log", `classifyAgentIntent: proxy responded ${response.status} ${body}`);
     if (!response.ok) {
       throw new Error(
         `intent proxy failed (${response.status}): ${body || response.statusText}`,
@@ -443,16 +459,28 @@ async function handle(msg: Msg): Promise<unknown> {
       return await inferPermissionsFromContext(context);
     }
     case "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB": {
+      tlog("log", "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB received");
       const text = await activeChatGptLatestUserText();
+      tlog("log", `extracted text: ${JSON.stringify(text)}`);
+      tlog("log", `lastClassifiedText: ${JSON.stringify(lastClassifiedText)}`);
       if (!text || text === lastClassifiedText) {
+        tlog("log", "skipping — no new text");
         return {
           changed: false,
           wantsAgent: false,
           text: text || null,
         } satisfies AgentIntentResult;
       }
-      lastClassifiedText = text;
-      const wantsAgent = await classifyAgentIntent(text);
+      tlog("log", `calling classifyAgentIntent: "${text.slice(0, 100)}"`);
+      let wantsAgent = false;
+      try {
+        wantsAgent = await classifyAgentIntent(text);
+        lastClassifiedText = text;
+      } catch (e) {
+        tlog("error", `classifyAgentIntent failed: ${e instanceof Error ? e.message : String(e)}`);
+        return { changed: false, wantsAgent: false, text } satisfies AgentIntentResult;
+      }
+      tlog("log", `classifyAgentIntent result: wantsAgent = ${wantsAgent}`);
       return { changed: true, wantsAgent, text } satisfies AgentIntentResult;
     }
   }

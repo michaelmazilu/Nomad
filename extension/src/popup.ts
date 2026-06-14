@@ -46,15 +46,16 @@ function showSuccess(show: boolean): void {
 
 async function poll(): Promise<void> {
   if (!monitoring) return;
+  console.log("[Nomad] poll: firing");
   try {
     const result = await send<AgentIntentResult>({
       type: "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB",
     });
+    console.log("[Nomad] poll: result =", result);
     if (result?.changed && result.wantsAgent) showSuccess(true);
   } catch (e) {
-    // Transient (no ChatGPT tab open, API blip) — keep polling silently.
-    console.info(
-      `[Nomad] detection skipped: ${e instanceof Error ? e.message : String(e)}`,
+    console.warn(
+      `[Nomad] poll error: ${e instanceof Error ? e.message : String(e)}`,
     );
   }
 }

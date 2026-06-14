@@ -39,6 +39,19 @@ app.addHook("onRequest", async (request, reply) => {
 
 app.get("/health", async () => ({ status: "ok", model }));
 
+// Extension POSTs debug log lines here so they appear in this terminal.
+app.post("/log", async (request, reply) => {
+  const { level = "log", msg } = (request.body ?? {}) as {
+    level?: string;
+    msg?: string;
+  };
+  const line = `[extension] ${msg ?? ""}`;
+  if (level === "warn") console.warn(line);
+  else if (level === "error") console.error(line);
+  else console.log(line);
+  return reply.code(204).send();
+});
+
 /** Ask Haiku 4.5 whether one ChatGPT message asks to create an agent. */
 async function classifyAgentIntent(text: string): Promise<boolean> {
   const controller = new AbortController();
