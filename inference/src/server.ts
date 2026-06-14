@@ -1,4 +1,13 @@
 import Fastify from "fastify";
+import { Connection, PublicKey } from "@solana/web3.js";
+import {
+  verify,
+  tryFromBase58,
+  decodePassport,
+  derivePassportPda,
+  getClusterConfig,
+  type Cluster,
+} from "@agent-passport/sdk";
 
 /**
  * Intent-detection proxy. The Anthropic API key lives here (server-side) so it
@@ -107,6 +116,58 @@ app.post("/detect-agent-intent", async (request, reply) => {
     return reply
       .code(502)
       .send({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
+const verifyCluster = (process.env["CLUSTER"] ?? "devnet") as Cluster;
+
+app.post("/verify-agent", async (request, reply) => {
+  const body = request.body as {
+    publicKey?: string;
+    signature?: string;
+    message?: string;
+  } | null;
+
+  const { publicKey: pubKeyB58, signature: sigB58, message } = body ?? {};
+  if (!pubKeyB58 || !sigB58 || !message) {
+    return reply.code(400).send({ error: "missing publicKey, signature, or message" });
+  }
+
+  const pubKeyBytes = tryFromBase58(pubKeyB58);
+  const sigBytes = tryFromBase58(sigB58);
+  if (!pubKeyBytes || pubKeyBytes.length !== 32) {
+    return reply.code(400).send({ error: "invalid publicKey" });
+  }
+  if (!sigBytes || sigBytes.length !== 64) {
+    return reply.code(400).send({ error: "invalid signature" });
+  }
+
+  const messageBytes = new TextEncoder().encode(message);
+  const signatureValid = verify(messageBytes, sigBytes, pubKeyBytes);
+  if (!signatureValid) {
+    return reply.send({ valid: false, reason: "signature verification failed" });
+  }
+
+  try {
+    const cfg = getClusterConfig(verifyCluster);
+    const connection = new Connection(cfg.rpcUrl, "confirmed");
+    const agentPubKey = new PublicKey(pubKeyBytes);
+    const [pda] = derivePassportPda(agentPubKey, new PublicKey(cfg.programId));
+    const accountInfo = await connection.getAccountInfo(pda);
+    if (!accountInfo) {
+      return reply.send({ valid: false, reason: "no passport found on-chain for this agent" });
+    }
+    const passport = decodePassport(Uint8Array.from(accountInfo.data));
+    return reply.send({
+      valid: true,
+      label: passport.label,
+      scopes: passport.permissions,
+      agent: agentPubKey.toBase58(),
+      authority: passport.authority,
+    });
+  } catch (e) {
+    request.log.error(e);
+    return reply.code(502).send({ error: e instanceof Error ? e.message : String(e) });
   }
 });
 
