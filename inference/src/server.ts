@@ -13,9 +13,14 @@ import Fastify from "fastify";
  */
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 
-const apiKey =
-  process.env["ANTHROPIC_API_KEY"] ??
-  "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";
+if (!process.env["ANTHROPIC_API_KEY"]) {
+  console.error(
+    "ANTHROPIC_API_KEY is not set. Copy inference/.env.example to inference/.env " +
+      "and add your key (the npm scripts load it via --env-file=.env).",
+  );
+  process.exit(1);
+}
+const apiKey: string = process.env["ANTHROPIC_API_KEY"];
 const model = process.env["ANTHROPIC_MODEL"] ?? "claude-haiku-4-5";
 
 const app = Fastify({ logger: true });
