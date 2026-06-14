@@ -23,8 +23,20 @@ export default defineManifest({
   version: "0.1.0",
   description:
     "Create an agent identity and manage its on-chain Nomad permission passport.",
+  icons: {
+    "16": "brand/icons/nomad-icon-16.png",
+    "32": "brand/icons/nomad-icon-32.png",
+    "48": "brand/icons/nomad-icon-48.png",
+    "128": "brand/icons/nomad-icon-128.png",
+  },
   action: {
     default_title: "nomad",
+    default_icon: {
+      "16": "brand/icons/nomad-icon-16.png",
+      "32": "brand/icons/nomad-icon-32.png",
+      "48": "brand/icons/nomad-icon-48.png",
+      "128": "brand/icons/nomad-icon-128.png",
+    },
   },
   side_panel: {
     default_path: "src/popup.html",

@@ -141,11 +141,11 @@
         text-align: center;
       }
 
-      h1 {
-        margin: 0;
-        color: var(--ink);
-        font: 400 42px/0.94 var(--display);
-        letter-spacing: 0;
+      .brand-logo {
+        display: block;
+        width: 148px;
+        height: auto;
+        margin: 0 auto;
       }
 
       .grid {
@@ -947,7 +947,12 @@
   <body>
     <main class="shell">
       <header class="masthead">
-        <h1 id="nomad-title">nomad</h1>
+        <img
+          id="nomad-title"
+          class="brand-logo"
+          src="/brand/nomad-wordmark-white.svg"
+          alt="nomad"
+        />
       </header>
 
       <section class="wallet-gate">
