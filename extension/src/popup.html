@@ -42,19 +42,22 @@
       }
 
       html {
-        width: 420px;
-        min-width: 420px;
-        min-height: 100%;
+        width: 320px;
+        min-width: 320px;
+        height: 300px;
+        min-height: 300px;
+        overflow: hidden;
         background: #101417;
       }
 
       body {
-        width: 420px;
-        min-width: 420px;
-        min-height: 100vh;
-        max-height: 680px;
+        width: 320px;
+        min-width: 320px;
+        height: 300px;
+        min-height: 300px;
+        max-height: 300px;
         margin: 0;
-        overflow-y: auto;
+        overflow: hidden;
         background:
           linear-gradient(
             180deg,
@@ -65,7 +68,7 @@
           url("/nomad-mountain-lake.jpg") center / cover no-repeat,
           #101417;
         color: var(--ink);
-        font: 13px/1.5 var(--sans);
+        font: 12px/1.45 var(--sans);
         letter-spacing: 0;
         text-rendering: geometricPrecision;
         -webkit-font-smoothing: antialiased;
@@ -82,10 +85,14 @@
       .shell {
         position: relative;
         isolation: isolate;
-        width: 420px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 320px;
+        height: 300px;
         margin: 0;
-        padding: 18px;
-        min-height: max(680px, 100vh);
+        padding: 16px;
+        min-height: 300px;
       }
 
       .shell::before {
@@ -128,14 +135,14 @@
 
       .masthead {
         position: relative;
-        padding: 6px 0 20px;
+        padding: 0 0 16px;
         text-align: center;
       }
 
       h1 {
         margin: 0;
         color: var(--ink);
-        font: 500 28px/1 var(--display);
+        font: 500 27px/1 var(--display);
       }
 
       .grid {
@@ -369,10 +376,10 @@
       .wallet-gate {
         position: relative;
         overflow: hidden;
-        margin-top: 4px;
-        padding: 22px;
+        margin-top: 0;
+        padding: 16px;
         border: 1px solid rgba(255, 255, 255, 0.36);
-        border-radius: 44px;
+        border-radius: 30px;
         background: rgba(255, 255, 255, 0.16);
         box-shadow:
           0 28px 80px rgba(0, 0, 0, 0.3),
@@ -387,7 +394,7 @@
         content: "";
         position: absolute;
         inset: 2px;
-        border-radius: 42px;
+        border-radius: 28px;
         pointer-events: none;
         background: linear-gradient(
           145deg,
@@ -410,10 +417,10 @@
         align-items: center;
         justify-content: center;
         width: 100%;
-        min-height: 88px;
+        min-height: 58px;
         border: 1px solid rgba(255, 255, 255, 0.42);
         border-radius: 999px;
-        padding: 12px 14px;
+        padding: 10px 12px;
         color: #fff;
         background:
           linear-gradient(
