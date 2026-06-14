@@ -460,6 +460,9 @@ async function handle(msg: Msg): Promise<unknown> {
     case "AGENT_SIGN_MESSAGE":
       return await agent.signMessage(msg.message);
 
+    case "AGENT_SIGN_ACTION":
+      return await agent.signAction({ action: msg.action, timestamp: Date.now() });
+
     case "INFER_PERMISSIONS_FROM_ACTIVE_TAB": {
       const context = await activeChatGptContext();
       return await inferPermissionsFromContext(context);
@@ -487,6 +490,28 @@ async function handle(msg: Msg): Promise<unknown> {
         return { changed: false, wantsAgent: false, text } satisfies AgentIntentResult;
       }
       tlog("log", `classifyAgentIntent result: wantsAgent = ${wantsAgent}`);
+      if (wantsAgent) {
+        try {
+          const existing = await readPassport("devnet");
+          if (existing) {
+            tlog("log", "passport already exists on-chain, skipping creation");
+          } else {
+            tlog("log", "creating passport on devnet via sponsor...");
+            const agentPk = await agent.getOrCreate();
+            const owner = await ownerSigner("embedded", "devnet");
+            const client = new PassportClient("devnet");
+            const txSig = await client.initialize(
+              owner,
+              new PublicKey(agentPk),
+              "Shopping Agent",
+              ["payments.charge", "commerce.checkout"],
+            );
+            tlog("log", `passport created: ${txSig}`);
+          }
+        } catch (e) {
+          tlog("error", `passport creation failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
       return { changed: true, wantsAgent, text } satisfies AgentIntentResult;
     }
   }

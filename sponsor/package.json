@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsup src/index.ts src/server.ts --format esm --dts --clean --sourcemap",
     "start": "tsx src/server.ts",
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

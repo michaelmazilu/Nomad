@@ -41,7 +41,8 @@ export type Msg =
   | { type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB" }
   | { type: "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB" }
   | { type: "AGENT_GET_PUBLIC_KEY" }
-  | { type: "AGENT_SIGN_MESSAGE"; message: string };
+  | { type: "AGENT_SIGN_MESSAGE"; message: string }
+  | { type: "AGENT_SIGN_ACTION"; action: string };
 
 export interface AgentInfo {
   agentPublicKey: string | null;
