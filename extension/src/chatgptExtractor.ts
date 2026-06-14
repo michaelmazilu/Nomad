@@ -28,3 +28,22 @@ export function extractChatGptConversation(): ExtractedTabContext {
     text,
   };
 }
+
+/** The most recent message the user sent in the active ChatGPT conversation. */
+export function extractLatestChatGptUserMessage(): ExtractedTabContext {
+  const readable = (el: Element): string => {
+    const text = (el as HTMLElement).innerText ?? el.textContent ?? "";
+    return text.replace(/\s+/g, " ").trim();
+  };
+
+  const userNodes = Array.from(
+    document.querySelectorAll('[data-message-author-role="user"]'),
+  );
+  const last = userNodes[userNodes.length - 1];
+
+  return {
+    url: location.href,
+    title: document.title,
+    text: last ? readable(last) : "",
+  };
+}

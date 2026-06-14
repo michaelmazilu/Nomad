@@ -38,3 +38,12 @@ export const SPONSOR_AUTH_TOKEN = env?.VITE_NOMAD_SPONSOR_TOKEN ?? undefined;
  */
 export const INFERENCE_PROXY_URL =
   env?.VITE_NOMAD_INFERENCE_PROXY_URL ?? "http://localhost:8788/infer";
+
+/**
+ * Backend proxy that classifies whether a ChatGPT message asks to create an
+ * agent. The Anthropic API key lives on this backend (see the `inference`
+ * workspace), never in the extension bundle. Must end without a trailing slash.
+ */
+export const INTENT_PROXY_URL =
+  env?.VITE_NOMAD_INTENT_PROXY_URL ??
+  "http://localhost:8791/detect-agent-intent";

@@ -880,207 +880,64 @@
       .activity:empty {
         display: none;
       }
+
+      .toggle-state {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .phantom-bar[data-state="on"] {
+        border-color: rgba(142, 240, 178, 0.62);
+        background:
+          linear-gradient(
+            135deg,
+            rgba(142, 240, 178, 0.32),
+            rgba(142, 240, 178, 0.06) 56%,
+            rgba(0, 0, 0, 0.12)
+          ),
+          rgba(142, 240, 178, 0.16);
+      }
+
+      .phantom-bar[data-state="on"] .toggle-state {
+        color: var(--green);
+      }
+
+      .status-success {
+        margin: 16px 0 0;
+        text-align: center;
+        color: var(--green);
+        font-size: 15px;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
     <main class="shell">
       <header class="masthead">
         <h1 id="nomad-title">Nomad</h1>
-        <button
-          id="settingsToggle"
-          class="secondary settings-toggle"
-          type="button"
-          aria-label="Settings"
-          aria-expanded="false"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-              fill="none"
-              stroke-width="1.8"
-            />
-            <path
-              d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.3a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z"
-              fill="none"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.8"
-            />
-          </svg>
-        </button>
       </header>
 
-      <select id="ownerMode" hidden aria-hidden="true">
-        <option value="phantom" selected>Phantom</option>
-        <option value="embedded">Embedded (sponsored)</option>
-        <option value="local">Local (dev)</option>
-      </select>
-      <select id="cluster" hidden aria-hidden="true">
-        <option value="localnet" selected>localnet</option>
-      </select>
-
-      <section id="settingsPanel" class="panel settings-panel" hidden>
-        <div class="panel-body">
-          <div class="panel-head">
-            <h2>Settings</h2>
-            <span class="tag">diagnostics</span>
-          </div>
-          <div class="readout">
-            <span class="eyebrow">Wallet</span>
-            <code id="settingsOwnerPubkey">none</code>
-          </div>
-          <div class="readout">
-            <span class="eyebrow">Agent public key</span>
-            <code id="settingsAgentPubkey">none</code>
-          </div>
-          <div class="balance">
-            <span class="eyebrow">Balance</span>
-            <span><code id="settingsOwnerBalance">0.0000</code> SOL</span>
-          </div>
-          <div class="readout scope-readout">
-            <span class="eyebrow">Cluster</span>
-            <code id="settingsCluster">localnet</code>
-          </div>
-          <div class="readout">
-            <span class="eyebrow">Phantom cluster</span>
-            <code id="settingsWalletCluster">unknown</code>
-          </div>
-          <div class="readout">
-            <span class="eyebrow">On-chain scopes</span>
-            <code id="onchainScopes">none</code>
-          </div>
-          <label class="toggle-row" for="reviewBeforeApply">
-            <span>Review inferred fields</span>
-            <input id="reviewBeforeApply" type="checkbox" />
-          </label>
-          <div id="settingsActions" class="actions" hidden>
-            <button id="airdrop" class="secondary">Airdrop</button>
-          </div>
-          <pre id="log" class="activity"></pre>
-        </div>
-      </section>
-
-      <section id="walletGate" class="wallet-gate">
+      <section class="wallet-gate">
         <div class="wallet-head">
-          <h2>Connect wallet</h2>
+          <h2>Mode</h2>
         </div>
         <button
-          id="connectOwner"
+          id="toggleMonitor"
           class="phantom-bar"
-          aria-label="Connect Phantom wallet"
+          type="button"
+          data-state="off"
+          aria-pressed="false"
+          aria-label="Turn agent detection on"
         >
-          <span class="phantom-left">
-            <span class="phantom-signal">
-              <span class="phantom-signal-ring"></span>
-              <span class="phantom-signal-ring"></span>
-              <svg
-                class="phantom-logo"
-                viewBox="0 0 32 32"
-                role="img"
-                aria-label="Phantom logo"
-              >
-                <circle cx="16" cy="16" r="16" fill="rgba(255,255,255,.18)" />
-                <path
-                  d="M8.2 18.3c0-6.1 4.4-10.1 9.8-10.1 5 0 8.1 3.6 8.1 8.6 0 4.7-2.6 7.1-5.1 7.1-1.6 0-2.4-.8-2.8-1.8-.8 1.3-2.2 2.4-4.1 2.4-3.4 0-5.9-2.2-5.9-6.2Z"
-                  fill="#fff"
-                />
-                <circle cx="18.9" cy="15.1" r="1.1" fill="#101417" />
-                <circle cx="23.1" cy="15.1" r="1.1" fill="#101417" />
-              </svg>
-            </span>
-            <span class="phantom-name">Phantom</span>
-          </span>
-          <span class="phantom-progress" aria-hidden="true"></span>
+          <span class="toggle-state" id="toggleLabel">Off</span>
         </button>
-        <p id="ownerWarn"></p>
-        <p id="ownerHint" class="hint"></p>
+        <p id="detectStatus" class="status-success" hidden>
+          agent successfully created!
+        </p>
       </section>
-
-      <div id="postWallet" class="grid" hidden>
-        <section id="agentGate" class="panel sync-panel">
-          <div class="panel-body">
-            <div class="actions">
-              <button id="ensureAgent" class="sync-bar">
-                <span class="phantom-name">Sync</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <div id="workspace" class="grid" hidden>
-          <section class="panel">
-            <div class="panel-body">
-              <div class="panel-head">
-                <h2>Passport</h2>
-                <span class="tag">permissions</span>
-              </div>
-              <div class="field">
-                <label for="label">Label</label>
-                <input
-                  id="label"
-                  type="text"
-                  maxlength="64"
-                  placeholder="My Agent"
-                />
-              </div>
-              <div class="field">
-                <label for="permissions">Scopes</label>
-                <textarea
-                  id="permissions"
-                  rows="4"
-                  placeholder="calendar.read&#10;calendar.*"
-                ></textarea>
-              </div>
-              <div class="actions">
-                <button id="inferFromChatGpt" class="secondary">
-                  Infer from ChatGPT
-                </button>
-              </div>
-              <div id="inferenceStatus" class="status"></div>
-              <div id="inferenceProposal" class="readout proposal" hidden>
-                <span class="eyebrow">Proposed label</span>
-                <code id="proposalLabel"></code>
-                <span class="eyebrow">Proposed scopes</span>
-                <code id="proposalScopes"></code>
-                <span class="eyebrow">Proposed action</span>
-                <code id="proposalAction"></code>
-                <span class="eyebrow">Warnings</span>
-                <code id="proposalWarnings"></code>
-                <div class="actions">
-                  <button id="applyInference">Apply</button>
-                  <button id="cancelInference" class="secondary">Cancel</button>
-                </div>
-              </div>
-              <div class="actions">
-                <button id="createPassport">Create</button>
-                <button id="updatePassport" class="secondary">Update</button>
-                <button id="revokePassport" class="danger">Revoke</button>
-                <button id="loadPassport" class="secondary">
-                  Load from chain
-                </button>
-              </div>
-              <div id="txStatus" class="status"></div>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-body">
-              <div class="panel-head">
-                <h2>Verify</h2>
-                <span class="tag">signed action</span>
-              </div>
-              <div class="field">
-                <label for="action">Action</label>
-                <input id="action" type="text" placeholder="calendar.read" />
-              </div>
-              <div class="actions">
-                <button id="attemptAction">Attempt</button>
-              </div>
-              <div id="verdict" class="verdict"></div>
-            </div>
-          </section>
-        </div>
-      </div>
     </main>
     <script type="module" src="./popup.ts"></script>
   </body>

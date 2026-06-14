@@ -38,7 +38,8 @@ export type Msg =
     }
   | { type: "PASSPORT_REVOKE"; cluster: Cluster; mode: OwnerMode }
   | { type: "ATTEMPT_ACTION"; cluster: Cluster; action: string }
-  | { type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB" };
+  | { type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB" }
+  | { type: "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB" };
 
 export interface AgentInfo {
   agentPublicKey: string | null;
@@ -82,6 +83,16 @@ export interface InferenceResult {
     url: string;
     title?: string;
   };
+}
+
+/** Result of classifying the latest ChatGPT user message for agent-creation intent. */
+export interface AgentIntentResult {
+  /** True when the latest user message differs from the last one we classified. */
+  changed: boolean;
+  /** Haiku's verdict: did the user ask to create an agent? */
+  wantsAgent: boolean;
+  /** The classified message text, or null when there is nothing to classify. */
+  text: string | null;
 }
 
 export type Response =
