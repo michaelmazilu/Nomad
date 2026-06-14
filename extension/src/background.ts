@@ -161,6 +161,7 @@ async function ownerSigner(
 ): Promise<OwnerSigner> {
   if (mode === "local") return new LocalOwnerSigner(await localOwner.keypair());
   if (mode === "embedded") {
+    await embeddedOwner.getOrCreate();
     const keypair = await embeddedOwner.keypair();
     const client = sponsor();
     const feePayer = await client.feePayer();

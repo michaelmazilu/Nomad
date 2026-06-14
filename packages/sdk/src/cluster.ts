@@ -23,7 +23,7 @@ export interface ClusterConfig {
  * keypair; a separate mainnet keypair would change the mainnet entry below.
  */
 export const AGENT_PASSPORT_PROGRAM_ID =
-  "43MLqvfxob3RoxGGLMdqGUERCiGN5NKWJyuvvBSVjjgi";
+  "HffPjZ3SXPAPzJRuKfNnihNHbFtv6LAaeH29nCs54BEX";
 
 export const DEFAULT_RPC_URLS: Record<Cluster, string> = {
   localnet: "http://127.0.0.1:8899",

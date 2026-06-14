@@ -18,7 +18,7 @@ use crate::contexts::*;
 use crate::events::{PassportClosed, PassportInitialized, PassportUpdated};
 use crate::state::{validate_label, validate_permissions};
 
-declare_id!("43MLqvfxob3RoxGGLMdqGUERCiGN5NKWJyuvvBSVjjgi");
+declare_id!("HffPjZ3SXPAPzJRuKfNnihNHbFtv6LAaeH29nCs54BEX");
 
 #[program]
 pub mod agent_passport {

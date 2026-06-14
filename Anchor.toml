@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-agent_passport = "43MLqvfxob3RoxGGLMdqGUERCiGN5NKWJyuvvBSVjjgi"
+agent_passport = "HffPjZ3SXPAPzJRuKfNnihNHbFtv6LAaeH29nCs54BEX"
 
 [programs.localnet]
-agent_passport = "43MLqvfxob3RoxGGLMdqGUERCiGN5NKWJyuvvBSVjjgi"
+agent_passport = "HffPjZ3SXPAPzJRuKfNnihNHbFtv6LAaeH29nCs54BEX"
 
 [registry]
 url = "https://api.apr.dev"

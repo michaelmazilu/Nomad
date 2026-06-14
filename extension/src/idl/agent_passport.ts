@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/agent_passport.json`.
  */
 export type AgentPassport = {
-  address: "43MLqvfxob3RoxGGLMdqGUERCiGN5NKWJyuvvBSVjjgi";
+  address: "HffPjZ3SXPAPzJRuKfNnihNHbFtv6LAaeH29nCs54BEX";
   metadata: {
     name: "agentPassport";
     version: "0.1.0";
