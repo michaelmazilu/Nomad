@@ -454,6 +454,12 @@ async function handle(msg: Msg): Promise<unknown> {
         signed,
       } satisfies AttemptResult;
     }
+    case "AGENT_GET_PUBLIC_KEY":
+      return { agentPublicKey: await agent.getPublicKey() };
+
+    case "AGENT_SIGN_MESSAGE":
+      return await agent.signMessage(msg.message);
+
     case "INFER_PERMISSIONS_FROM_ACTIVE_TAB": {
       const context = await activeChatGptContext();
       return await inferPermissionsFromContext(context);

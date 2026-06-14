@@ -47,6 +47,18 @@ export class AgentKeyManager {
     };
   }
 
+  /** Sign arbitrary UTF-8 text with the agent key and return base58 result. */
+  async signMessage(message: string): Promise<{ agentPublicKey: string; signature: string }> {
+    const sk = await this.store.load();
+    if (!sk) throw new Error("no agent key: create an identity first");
+    const kp = Keypair.fromSecretKey(sk);
+    const bytes = new TextEncoder().encode(message);
+    return {
+      agentPublicKey: kp.publicKey.toBase58(),
+      signature: toBase58(sign(bytes, sk)),
+    };
+  }
+
   async deleteKey(): Promise<void> {
     await this.store.clear();
   }

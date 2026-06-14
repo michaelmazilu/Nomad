@@ -39,7 +39,9 @@ export type Msg =
   | { type: "PASSPORT_REVOKE"; cluster: Cluster; mode: OwnerMode }
   | { type: "ATTEMPT_ACTION"; cluster: Cluster; action: string }
   | { type: "INFER_PERMISSIONS_FROM_ACTIVE_TAB" }
-  | { type: "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB" };
+  | { type: "DETECT_AGENT_INTENT_FROM_ACTIVE_TAB" }
+  | { type: "AGENT_GET_PUBLIC_KEY" }
+  | { type: "AGENT_SIGN_MESSAGE"; message: string };
 
 export interface AgentInfo {
   agentPublicKey: string | null;
@@ -93,6 +95,12 @@ export interface AgentIntentResult {
   wantsAgent: boolean;
   /** The classified message text, or null when there is nothing to classify. */
   text: string | null;
+}
+
+/** Result of signing an arbitrary message with the agent key. */
+export interface SignResult {
+  agentPublicKey: string;
+  signature: string;
 }
 
 export type Response =

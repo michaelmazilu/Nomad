@@ -36,6 +36,27 @@ export default defineManifest({
     service_worker: "src/background.ts",
     type: "module",
   },
+  content_scripts: [
+    {
+      matches: [
+        "https://chatgpt.com/*",
+        "https://*.chatgpt.com/*",
+        "https://chat.openai.com/*",
+      ],
+      js: ["src/content.ts"],
+      run_at: "document_start",
+    },
+    {
+      matches: [
+        "https://chatgpt.com/*",
+        "https://*.chatgpt.com/*",
+        "https://chat.openai.com/*",
+      ],
+      js: ["src/content-inject.ts"],
+      world: "MAIN",
+      run_at: "document_start",
+    },
+  ],
   permissions: ["storage", "activeTab", "scripting", "sidePanel"],
   host_permissions: [
     // ChatGPT: the side panel persists across tab switches, so activeTab (granted
