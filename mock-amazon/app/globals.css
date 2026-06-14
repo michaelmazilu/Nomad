@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/*
+  Amazon-like color tokens (legally-safe stand-in palette). Declaring them in
+  @theme makes utilities like `bg-amz-navy`, `text-amz-link`, `bg-amz-yellow`
+  available throughout the app (Tailwind v4 CSS-first config).
+*/
+@theme {
+  --color-amz-navy: #131921; /* top header bar */
+  --color-amz-slate: #232f3e; /* secondary nav strip */
+  --color-amz-yellow: #ffd814; /* primary CTA */
+  --color-amz-yellow-hover: #ffa41c; /* CTA hover */
+  --color-amz-orange: #febd69; /* search button */
+  --color-amz-link: #007185; /* teal product links */
+  --color-amz-link-hover: #c45500; /* link hover */
+  --color-amz-price: #b12704; /* red price text */
+  --color-amz-instock: #007600; /* "In Stock" green */
+  --color-amz-bg: #eaeded; /* page background */
+
+  --font-sans:
+    "Amazon Ember", Arial, "Helvetica Neue", Helvetica, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-amz-bg);
+  color: #0f1111;
+  font-family: var(--font-sans);
+}
+
+/* Amazon's links are teal and underline on hover. */
+.amz-link {
+  color: var(--color-amz-link);
+}
+.amz-link:hover {
+  color: var(--color-amz-link-hover);
+  text-decoration: underline;
+}
+
+/* Yellow gradient CTA used for Add to Cart / Buy Now / Place order. */
+.amz-cta {
+  background: var(--color-amz-yellow);
+  border: 1px solid #fcd200;
+  border-radius: 9999px;
+  color: #0f1111;
+  font-size: 0.875rem;
+  transition: background-color 0.1s ease-in-out;
+}
+.amz-cta:hover {
+  background: var(--color-amz-yellow-hover);
+}
+.amz-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.amz-cta:focus-visible {
+  outline: 2px solid #e77600;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px #f7dfa5;
+}
+
+/* Secondary "Buy Now" orange CTA. */
+.amz-cta-buy {
+  background: var(--color-amz-orange);
+  border: 1px solid #f1a02d;
+}
+.amz-cta-buy:hover {
+  background: #f3a847;
+}

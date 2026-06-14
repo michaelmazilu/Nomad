@@ -7,6 +7,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "infer:proxy": "tsx scripts/inferenceProxy.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

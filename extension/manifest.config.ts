@@ -23,9 +23,6 @@ export default defineManifest({
   version: "0.1.0",
   description:
     "Create an agent identity and manage its on-chain Nomad permission passport.",
-  // No default_popup: clicking the toolbar icon opens the side panel instead
-  // (wired in background.ts via setPanelBehavior). The side panel stays open
-  // when you click into the page, unlike the auto-closing action popup.
   action: {
     default_title: "Nomad",
   },
@@ -59,9 +56,8 @@ export default defineManifest({
   ],
   permissions: ["storage", "activeTab", "scripting", "sidePanel"],
   host_permissions: [
-    // ChatGPT: the side panel persists across tab switches, so activeTab (granted
-    // only for the tab active at open time) isn't enough — we need standing access
-    // to inject the message extractor whenever a ChatGPT tab becomes active.
+    // ChatGPT: standing access lets the popup/background read the active
+    // conversation reliably without depending on the activeTab grant lifetime.
     "https://chatgpt.com/*",
     "https://*.chatgpt.com/*",
     "https://chat.openai.com/*",

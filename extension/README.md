@@ -20,6 +20,16 @@ Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → se
 `VITE_NOMAD_INFERENCE_PROXY_URL` (default `http://localhost:8788/infer`). Run a
 backend proxy there; do not bundle LLM API keys into the extension.
 
+For local OpenAI-backed inference:
+
+```bash
+cp extension/.env.example extension/.env
+# edit extension/.env and set OPENAI_API_KEY
+npm run infer:proxy -w @agent-passport/extension
+```
+
+The local proxy defaults to `OPENAI_MODEL=gpt-5-nano` for low-cost structured extraction.
+
 ## Two keys, both local, both in the service worker
 
 | Key           | Role      | Signs                                             |

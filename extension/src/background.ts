@@ -492,12 +492,6 @@ async function handle(msg: Msg): Promise<unknown> {
   }
 }
 
-// Open the side panel (a persistent docked surface) when the toolbar icon is
-// clicked, instead of the action popup that auto-closes on blur.
-chrome.sidePanel
-  ?.setPanelBehavior?.({ openPanelOnActionClick: true })
-  .catch((e) => console.error("[Nomad] setPanelBehavior failed", e));
-
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   handle(msg as Msg)
     .then((data) => sendResponse({ ok: true, data }))
